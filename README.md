@@ -1,4 +1,4 @@
-# IG_Bild_Gen – Automatic Instagram Post Generator
+# Automatic Instagram Post Generator
 
 ## - Overview
 
