@@ -81,7 +81,6 @@ python IG_Bild_Gen.py --photo campus.jpg --position bottom-left --text "Waseda U
 | `--text`     | Text displayed inside the motive                                |
 | `--x`        | X coordinate of the text                                        |
 | `--y`        | Y coordinate of the text                                        |
-| `--seed`     | Optional seed for reproducible shape                            |
 | `--output`   | Output file path (default: output.png)                          |
 
 ---
@@ -111,8 +110,8 @@ python IG_Bild_Gen.py --photo campus.jpg --position top-right --text "THWS Partn
 ```
 
 ### Output
-
-* File: `output.png`
+* Default value = 'output.png'
+* File: `output.name`
 * Image with THWS overlay and text
 
 ---
