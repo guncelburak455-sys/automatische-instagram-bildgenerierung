@@ -1,0 +1,5 @@
+Metadata-Version: 2.4
+Name: ig-bild
+Version: 0.1.0
+Summary: Command-line tool for generating THWS-style Instagram images
+Requires-Dist: Pillow

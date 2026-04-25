@@ -9,7 +9,7 @@ def choose_position(position: str, rng: random.Random) -> str:
         return position
     return rng.choice(["top-left", "top-right", "bottom-left", "bottom-right"])
 
-
+# flips cell coordinates within the grid - used to place the same shape in any corner
 def mirror_cells(cells, width, height, horizontal=False, vertical=False):
     out = []
     for x, y in cells:
@@ -28,7 +28,7 @@ def transform_for_position(cells, width, height, position):
         return mirror_cells(cells, width, height, vertical=True)
     return mirror_cells(cells, width, height, horizontal=True, vertical=True)
 
-
+# returns the pixel (x, y) where the top-left of the shape grid should be places so it sits flush in the chosen corner
 def anchor_offset(template_w, template_h, cell, position):
     shape_w = template_w * cell
     shape_h = template_h * cell

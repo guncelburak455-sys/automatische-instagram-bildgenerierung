@@ -1,0 +1,2 @@
+[console_scripts]
+ig_bild = post_generator.runner:main

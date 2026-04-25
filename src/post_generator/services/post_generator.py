@@ -3,8 +3,10 @@ from PIL import Image, UnidentifiedImageError
 
 INSTAGRAM_WIDTH = 1080
 INSTAGRAM_HEIGHT = 1350
+# each cell is 150px - 1080 divides into exactly 7.2 of thesem, 1035 into 9
 CELL_SIZE = 150
 
+# the shape of the overlay - 1 = filled cell, 0 = empty. top-left corner variant ; other corners are derived by mirroring
 BASE_TEMPLATE = [
     "1111110",
     "1111111",

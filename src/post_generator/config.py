@@ -7,7 +7,7 @@ class Config:
     photo: str
     position: str
     text: str
-    x: int
+    x: int          # pixel offsets from the auto-calculated text center
     y: int
     output_path: Optional[str] = None
     output_name: str = "output.png"

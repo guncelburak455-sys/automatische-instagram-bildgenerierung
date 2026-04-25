@@ -7,7 +7,7 @@ from .services import composition, mask, transform
 from .services.textrenderer import TextRenderer
 from .services.post_generator import crop_to_4_5, template_to_grid, grid_to_cells, BASE_TEMPLATE, CELL_SIZE
 
-
+# pipeline: crop photo -> resolve position -> build cell grid -> mirror for corner -> generate mask -> compose with orange -> render text -> save
 def generate_post(config: Config):
     bg = Image.open(Path(config.photo)).convert("RGBA")
     bg = crop_to_4_5(bg)

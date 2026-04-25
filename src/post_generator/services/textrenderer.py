@@ -23,7 +23,7 @@ class TextRenderer:
             test_line = current_line + " " + word if current_line else word
 
             # smaller line width so text breaks earlier
-            if len(test_line) > 14:
+            if len(test_line) > 14:                             # 14 chars fits the overlay width at fant size 78 ; change this if you change the font size
                 if current_line:
                     lines.append(current_line)
                 current_line = word
@@ -53,6 +53,7 @@ class TextRenderer:
 
         mask_w = right - left
         mask_h = bottom - top
+        #nudge text away from the pointed corner of the shape - each position is slightly different because the shape isn't symmetric
         if position == "top-left":
             bias_x = mask_w * -0.18
         elif position == "top-right":
@@ -63,7 +64,7 @@ class TextRenderer:
             bias_x = mask_w * 0.08
         else:
             bias_x = 0
-        bias_y = mask_h * 0.10 * (1 if "bottom" in position else -1 if "top" in position else 0)
+        bias_y = mask_h * 0.10 * (1 if "bottom" in position else -1 if "top" in position else 0)      # shift text toward the center of the shape vertically
 
         img_w, img_h = image.size
         x = cx - text_w / 2 + bias_x + x_offset
