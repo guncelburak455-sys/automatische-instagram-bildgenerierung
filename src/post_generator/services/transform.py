@@ -40,3 +40,26 @@ def anchor_offset(template_w, template_h, cell, position):
     if position == "bottom-left":
         return 0, INSTAGRAM_HEIGHT - shape_h
     return INSTAGRAM_WIDTH - shape_w, INSTAGRAM_HEIGHT - shape_h
+
+def get_text_anchor(cells, cell, offset):
+    ox, oy = offset
+    min_y = min(y for x, y in cells)
+    top_row_xs = [x for x, y in cells if y == min_y]
+    min_x = min(top_row_xs)
+    return ox + min_x * cell, oy + min_y * cell
+
+
+def get_overlay_bounds(cells, cell, offset):
+    ox, oy = offset
+
+    min_cell_x = min(x for x, y in cells)
+    max_cell_x = max(x for x, y in cells)
+    min_cell_y = min(y for x, y in cells)
+    max_cell_y = max(y for x, y in cells)
+
+    left = ox + min_cell_x * cell
+    top = oy + min_cell_y * cell
+    right = ox + (max_cell_x + 1) * cell
+    bottom = oy + (max_cell_y + 1) * cell
+
+    return left, top, right, bottom
