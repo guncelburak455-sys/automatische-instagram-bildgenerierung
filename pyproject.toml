@@ -1,0 +1,17 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ig-bild"
+version = "0.1.0"
+description = "Command-line tool for generating THWS-style Instagram images"
+dependencies = [
+    "Pillow"
+]
+
+[project.scripts]
+ig_bild = "post_generator.runner:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
