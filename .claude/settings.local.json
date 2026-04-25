@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -m py_compile main.py)",
+      "Bash(python -c \"import main\")",
+      "Bash(python main.py --photo test.png --position top-left --text \"test\")",
+      "Bash(python -c \"from src.post_generator.app import generate_post; print\\('Import OK'\\)\")"
+    ]
+  }
+}

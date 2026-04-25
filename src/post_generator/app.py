@@ -1,41 +1,38 @@
+import random
+from pathlib import Path
+from PIL import Image
+
 from src.post_generator.config import Config
 from src.post_generator.services import composition, mask, transform
-from pathlib import Path
-import random
+from src.post_generator.services.textrenderer import TextRenderer
+from src.post_generator.services.post_generator import crop_to_4_5, template_to_grid, grid_to_cells, BASE_TEMPLATE, CELL_SIZE
+
 
 def generate_post(config: Config):
-    """
-    Orchestrate the generation of the Instagram post.
-    """
-    print(f"Starting generation with config:")
-    print(f"Photo: {config.photo}")
-    print(f"Position: {config.position}")
-    print(f"Text: {config.text}")
-    print(f"X: {config.x}")
-    print(f"Y: {config.y}")
-    print(f"Output path: {config.output_path}")
-    print(f"Output name: {config.output_name}")
+    bg = Image.open(Path(config.photo)).convert("RGBA")
+    bg = crop_to_4_5(bg)
 
-    # Skeleton for future integration:
-    # 1. Load the background image (config.photo)
-    # bg = Image.open(config.photo)
-    
-    # 2. Setup PRNG for repeatable transforms if needed
-    # rng = random.Random(42)
-    # position = transform.choose_position(config.position, rng)
-    
-    # 3. Create Mask
-    # generated_mask = mask.build_smooth_mask(...)
-    
-    # 4. Compose Image
-    # result = composition.compose(bg, generated_mask)
-    
-    # 5. Render Text
-    # ...
-    
-    # 6. Save Image
-    # output_dir = config.output_path if config.output_path else "."
-    # out_path = Path(output_dir) / config.output_name
-    # composition.save_output(result, str(out_path))
-    
-    print("Generation complete!")
+    position = transform.choose_position(config.position, random.Random())
+
+    grid = template_to_grid(BASE_TEMPLATE)
+    cells = grid_to_cells(grid)
+    template_h = len(grid)
+    template_w = len(grid[0])
+
+    cells = transform.transform_for_position(cells, template_w, template_h, position)
+    offset = transform.anchor_offset(template_w, template_h, CELL_SIZE, position)
+
+    generated_mask = mask.build_smooth_mask(bg.size, cells, CELL_SIZE, offset)
+    result = composition.compose(bg, generated_mask)
+
+    bounds = transform.get_overlay_bounds(cells, CELL_SIZE, offset)
+    renderer = TextRenderer()
+    result = renderer.draw_text_on_overlay(result, config.text, bounds, position, config.x, config.y)
+
+    output_dir = config.output_path if config.output_path else "."
+    output_name = config.output_name if Path(config.output_name).suffix else config.output_name + ".png"
+    out_path = str(Path(output_dir) / output_name)
+    composition.save_output(result, out_path)
+
+    print(f"Done. Position: {position}")
+    print(f"Saved to: {out_path}")
