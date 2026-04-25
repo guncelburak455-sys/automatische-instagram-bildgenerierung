@@ -1,6 +1,5 @@
 import argparse
-from src.post_generator.config import Config
-
+from .config import Config
 def parse_args() -> Config:
     """Parse command-line arguments and return a Config object."""
     parser = argparse.ArgumentParser(

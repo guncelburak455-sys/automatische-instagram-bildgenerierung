@@ -2,10 +2,10 @@ import random
 from pathlib import Path
 from PIL import Image
 
-from src.post_generator.config import Config
-from src.post_generator.services import composition, mask, transform
-from src.post_generator.services.textrenderer import TextRenderer
-from src.post_generator.services.post_generator import crop_to_4_5, template_to_grid, grid_to_cells, BASE_TEMPLATE, CELL_SIZE
+from .config import Config
+from .services import composition, mask, transform
+from .services.textrenderer import TextRenderer
+from .services.post_generator import crop_to_4_5, template_to_grid, grid_to_cells, BASE_TEMPLATE, CELL_SIZE
 
 
 def generate_post(config: Config):
