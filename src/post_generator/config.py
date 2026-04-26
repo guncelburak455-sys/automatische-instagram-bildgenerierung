@@ -3,7 +3,7 @@ from typing import Optional
 
 @dataclass
 class Config:
-    """Configuration for the post generator."""
+    """acts as a container that holds all the settings needed to generate the instagram post"""
     photo: str
     position: str
     text: str

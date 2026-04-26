@@ -5,6 +5,7 @@ class TextRenderer:
     def __init__(self, font_size=78):
         self.font_size = font_size
 
+# tries to load Arial Bold ; if it's not installed on the system, falls back to regular arial ; if also missing, fall back to pillow built-in font
     def load_font(self):
         try:
             return ImageFont.truetype("arialbd.ttf", self.font_size)
@@ -14,6 +15,8 @@ class TextRenderer:
             except OSError:
                 return ImageFont.load_default()
 
+# word-wrapping function ; splits the text into words, then builds lines one word at a time. if adding the next word would push the line past 14
+# characters, it starts a new line instead
     def format_text(self, text):
         words = text.split()
         lines = []
@@ -40,7 +43,7 @@ class TextRenderer:
         draw = ImageDraw.Draw(result)
         font = self.load_font()
 
-        left, top, right, bottom = bounds
+        left, top, right, bottom = bounds       # (left, top, irght, bottom) rectangle of the orange overlay
 
         formatted_text = self.format_text(text)
 
@@ -48,6 +51,7 @@ class TextRenderer:
         text_w = bbox[2] - bbox[0]
         text_h = bbox[3] - bbox[1]
 
+        # calculating the center of the overlay where the text will go
         cx = (left + right) / 2
         cy = (top + bottom) / 2
 
@@ -72,6 +76,7 @@ class TextRenderer:
         x = max(0, min(x, img_w - text_w))
         y = max(0, min(y, img_h - text_h))
 
+# renders the formatted text onto the image at the calculated position
         draw.multiline_text(
             (x, y),
             formatted_text,

@@ -18,7 +18,7 @@ def mirror_cells(cells, width, height, horizontal=False, vertical=False):
         out.append((nx, ny))
     return out
 
-
+# maps each corner to the right mirroring operation
 def transform_for_position(cells, width, height, position):
     if position == "top-left":
         return cells
@@ -41,6 +41,7 @@ def anchor_offset(template_w, template_h, cell, position):
         return 0, INSTAGRAM_HEIGHT - shape_h
     return INSTAGRAM_WIDTH - shape_w, INSTAGRAM_HEIGHT - shape_h
 
+# function that has been replaced by get_overlay_bounds
 def get_text_anchor(cells, cell, offset):
     ox, oy = offset
     min_y = min(y for x, y in cells)
@@ -48,7 +49,7 @@ def get_text_anchor(cells, cell, offset):
     min_x = min(top_row_xs)
     return ox + min_x * cell, oy + min_y * cell
 
-
+# calculates the bounding rectangle around all filled cells ; finds the min/max cell coordinates in both axes, then converts to pixel coordinates
 def get_overlay_bounds(cells, cell, offset):
     ox, oy = offset
 
