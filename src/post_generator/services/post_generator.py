@@ -20,7 +20,7 @@ BASE_TEMPLATE = [
 def template_to_grid(template):
     return [list(row) for row in template]
 
-# scans the list of individual characters and extracts the coordinates of all filled cells, also where the value is "1".
+# walks through every position in the grid and collects the (x, y) coordinates of every cell that has "1".
 def grid_to_cells(grid):
     cells = []
     for y, row in enumerate(grid):

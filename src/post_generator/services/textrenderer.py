@@ -39,6 +39,13 @@ class TextRenderer:
         return "\n".join(lines)
 
     def draw_text_on_overlay(self, image, text, bounds, position="", x_offset=0, y_offset=0):
+        # 1. Copy the image so we don't draw on the original
+        # 2. Format the text using format_text()
+        # 3. Measure the text with multiline_textbox to get the width and height
+        # 4. Find the center of the orange shape, using the bounds rectangle that was passed in
+        # 5. Apply a position-dependent moving-value
+        # 6. Manual offsets
+        # 7. Draw the text in white using multiline_text with align="center"
         result = image.copy()
         draw = ImageDraw.Draw(result)
         font = self.load_font()
