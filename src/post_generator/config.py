@@ -11,3 +11,4 @@ class Config:
     y: int
     output_path: Optional[str] = None
     output_name: str = "output.png"
+    preview: bool = False
