@@ -6,7 +6,9 @@ from .config import Config
 from .services import composition, mask, transform
 from .services.preview import show_preview
 from .services.textrenderer import TextRenderer
-from .services.post_generator import crop_to_4_5, template_to_grid, grid_to_cells, BASE_TEMPLATE, CELL_SIZE
+from .services.post_generator import crop_to_4_5, template_to_grid, grid_to_cells, random_stair_template, CELL_SIZE
+
+
 
 # pipeline: crop photo -> resolve position -> build cell grid -> mirror for corner -> generate mask -> compose with orange -> render text -> save
 def generate_post(config: Config):                      # orchestrates the entire image generation pipeline
@@ -16,8 +18,10 @@ def generate_post(config: Config):                      # orchestrates the entir
     bg = crop_to_4_5(bg)        # cropt to 4:5 aspect ratio
 
     position = transform.choose_position(config.position, random.Random())      # chooses the position of the overlay
-
-    grid = template_to_grid(BASE_TEMPLATE)          # converts base template into a 2D list of characters - X for "filled with overlay"
+    rng = random.Random()
+    position = transform.choose_position(config.position, rng)
+    template = random_stair_template(rng)
+    grid = template_to_grid(template)         # converts base template into a 2D list of characters - X for "filled with overlay"
     cells = grid_to_cells(grid)         # extracts all coordinates of X filled cells
     template_h = len(grid)          # number of rows in the gird
     template_w = len(grid[0])       # number of colums in the grid
