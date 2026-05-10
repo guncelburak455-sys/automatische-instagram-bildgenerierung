@@ -5,37 +5,78 @@ from PIL import Image
 from .config import Config
 from .services import composition, mask, transform
 from .services.overlay_service import CELL_SIZE, build_overlay_layout
-from .services.preview import show_preview
+from .services.preview import show_preview, read_action, read_regenerate_choice, prompt_position, prompt_text
 from .services.textrenderer import TextRenderer
 from .services.post_generator import crop_to_4_5
 
 
-# pipeline: crop photo -> resolve position -> generate overlay layout -> generate mask -> compose with orange -> render text -> save
-def generate_post(config: Config):                      # orchestrates the entire image generation pipeline
+def _resolve_output_path(config: Config) -> str:
+    output_dir = config.output_path if config.output_path else "."
+    output_name = config.output_name if Path(config.output_name).suffix else config.output_name + ".png"
+    return str(Path(output_dir) / output_name)
 
-    # Opens the image file at the path stored in config.photo, then converts it to RGBA mode.
+
+# pipeline: crop photo -> resolve position -> build overlay layout -> generate mask -> compose with orange -> render text
+def _build_image(config: Config) -> tuple[Image.Image, str]:
+    """Run the full generation pipeline once and return (image, resolved_position)."""
     bg = Image.open(Path(config.photo)).convert("RGBA")
-    bg = crop_to_4_5(bg)        # crop to 4:5 aspect ratio
+    bg = crop_to_4_5(bg)
 
     rng = random.Random()
-    position = transform.choose_position(config.position, rng)      # chooses the position of the overlay
-
+    position = transform.choose_position(config.position, rng)
     overlay = build_overlay_layout(position, rng)
 
     generated_mask = mask.build_smooth_mask(bg.size, overlay.cells, CELL_SIZE, overlay.offset)
-    result = composition.compose(bg, generated_mask)            # composites the background photo with the THWS orange overlay mask
+    result = composition.compose(bg, generated_mask)
 
-    renderer = TextRenderer()       # instance of renderer
-    result = renderer.draw_text_on_overlay(result, config.text, overlay.bounds, position, config.x, config.y)       # draw the user's text on top of the overlay
+    renderer = TextRenderer()
+    result = renderer.draw_text_on_overlay(result, config.text, overlay.bounds, position, config.x, config.y)
 
-    # Sprint 1 Update:
+    return result, position
+
+
+_HINT = "[R] regenerate   [S] save & quit   [Q] quit without saving"
+
+
+def _interactive_loop(config: Config, out_path: str) -> None:
+    """Show preview, read R/S/Q, regenerate / save / quit accordingly."""
+    variation = 1
+    image, position = _build_image(config)
+    show_preview(image, position, config.text, config.x, config.y, variation)
+    print(_HINT)
+
+    while True:
+        action = read_action()
+        if action == "r":
+            choice = read_regenerate_choice()
+            if choice == "p":
+                config.position = prompt_position(config.position)
+            elif choice == "t":
+                config.text = prompt_text(config.text)
+            variation += 1
+            print(f"Regenerating (variation #{variation}, position={config.position})...")
+            image, position = _build_image(config)
+            show_preview(image, position, config.text, config.x, config.y, variation)
+            print(_HINT)
+        elif action == "s":
+            composition.save_output(image, out_path)
+            print(f"Saved variation #{variation}. Position: {position}")
+            print(f"Saved to: {out_path}")
+            return
+        elif action == "q":
+            print("Quit without saving.")
+            return
+
+
+def generate_post(config: Config) -> None:
+    """Orchestrates image generation. With --preview, enters an interactive R/S/Q loop."""
+    out_path = _resolve_output_path(config)
+
     if config.preview:
-        show_preview(result, position, config.text, config.x, config.y)
+        _interactive_loop(config, out_path)
+        return
 
-    output_dir = config.output_path if config.output_path else "."
-    output_name = config.output_name if Path(config.output_name).suffix else config.output_name + ".png"
-    out_path = str(Path(output_dir) / output_name)
-    composition.save_output(result, out_path)
-
+    image, position = _build_image(config)
+    composition.save_output(image, out_path)
     print(f"Done. Position: {position}")
     print(f"Saved to: {out_path}")
