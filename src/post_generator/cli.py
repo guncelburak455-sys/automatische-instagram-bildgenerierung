@@ -15,6 +15,8 @@ def parse_args() -> Config:
     parser.add_argument("--y", type=int, default=0, help="Vertical position of the text in the motive")
     parser.add_argument("--output_path", required=False, help="Path to the output file")
     parser.add_argument("--output_name", required=False, default="output.png", help="Name of the output file")
+    # --preview flag update in Sprint 1 for UX Isses/User Stories
+    parser.add_argument("--preview", dest="preview", action="store_true", help="Open a preview window of the generated image before saving")
 
     args = parser.parse_args()
 
@@ -25,5 +27,6 @@ def parse_args() -> Config:
         x=args.x,
         y=args.y,
         output_path=args.output_path,
-        output_name=args.output_name
+        output_name=args.output_name,
+        preview=args.preview,
     )
