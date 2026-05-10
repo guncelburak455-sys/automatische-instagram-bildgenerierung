@@ -4,42 +4,34 @@ from PIL import Image
 
 from .config import Config
 from .services import composition, mask, transform
+from .services.overlay_service import CELL_SIZE, build_overlay_layout
 from .services.preview import show_preview
 from .services.textrenderer import TextRenderer
-from .services.post_generator import crop_to_4_5, template_to_grid, grid_to_cells, random_stair_template, CELL_SIZE
+from .services.post_generator import crop_to_4_5
 
 
-
-# pipeline: crop photo -> resolve position -> build cell grid -> mirror for corner -> generate mask -> compose with orange -> render text -> save
+# pipeline: crop photo -> resolve position -> generate overlay layout -> generate mask -> compose with orange -> render text -> save
 def generate_post(config: Config):                      # orchestrates the entire image generation pipeline
 
-    # opens the image file at the path stored in config.photo ; then converts it to RGBA mode, RGB + transparency channel for opacity etc.
+    # Opens the image file at the path stored in config.photo, then converts it to RGBA mode.
     bg = Image.open(Path(config.photo)).convert("RGBA")
-    bg = crop_to_4_5(bg)        # cropt to 4:5 aspect ratio
+    bg = crop_to_4_5(bg)        # crop to 4:5 aspect ratio
 
-    position = transform.choose_position(config.position, random.Random())      # chooses the position of the overlay
     rng = random.Random()
-    position = transform.choose_position(config.position, rng)
-    template = random_stair_template(rng)
-    grid = template_to_grid(template)         # converts base template into a 2D list of characters - X for "filled with overlay"
-    cells = grid_to_cells(grid)         # extracts all coordinates of X filled cells
-    template_h = len(grid)          # number of rows in the gird
-    template_w = len(grid[0])       # number of colums in the grid
+    position = transform.choose_position(config.position, rng)      # chooses the position of the overlay
 
-    cells = transform.transform_for_position(cells, template_w, template_h, position)       # for every position, it mirrors horizontally and/or vertically
-    offset = transform.anchor_offset(template_w, template_h, CELL_SIZE, position)       # x,y coordinates for text inside of the mask overlay
+    overlay = build_overlay_layout(position, rng)
 
-    generated_mask = mask.build_smooth_mask(bg.size, cells, CELL_SIZE, offset)
-    result = composition.compose(bg, generated_mask)            # composites the background photo uploaded with the THWS orange overlay mask
+    generated_mask = mask.build_smooth_mask(bg.size, overlay.cells, CELL_SIZE, overlay.offset)
+    result = composition.compose(bg, generated_mask)            # composites the background photo with the THWS orange overlay mask
 
-    bounds = transform.get_overlay_bounds(cells, CELL_SIZE, offset)         # bounds for the text
     renderer = TextRenderer()       # instance of renderer
-    result = renderer.draw_text_on_overlay(result, config.text, bounds, position, config.x, config.y)       # drawing the user's tet ontop of the verlay
+    result = renderer.draw_text_on_overlay(result, config.text, overlay.bounds, position, config.x, config.y)       # draw the user's text on top of the overlay
 
-# Sprint 1 Update:
+    # Sprint 1 Update:
     if config.preview:
         show_preview(result, position, config.text, config.x, config.y)
-#
+
     output_dir = config.output_path if config.output_path else "."
     output_name = config.output_name if Path(config.output_name).suffix else config.output_name + ".png"
     out_path = str(Path(output_dir) / output_name)
