@@ -1,19 +1,23 @@
 from PIL import Image, ImageDraw, ImageFont
 
-
+# tries to load Arial Bold ; if it's not installed on the system, falls back to regular arial ; if also missing, fall back to pillow built-in font
 class TextRenderer:
     def __init__(self, font_size=78):
         self.font_size = font_size
 
-# tries to load Arial Bold ; if it's not installed on the system, falls back to regular arial ; if also missing, fall back to pillow built-in font
     def load_font(self):
+        font_path = "/System/Library/Fonts/Supplemental/Arial Bold.ttf"
+
         try:
-            return ImageFont.truetype("arialbd.ttf", self.font_size)
+            print(f"Loading font from: {font_path}")
+            return ImageFont.truetype(font_path, self.font_size)
         except OSError:
-            try:
-                return ImageFont.truetype("arial.ttf", self.font_size)
-            except OSError:
-                return ImageFont.load_default()
+            print("Arial Bold not found, using Helvetica")
+            return ImageFont.truetype(
+                "/System/Library/Fonts/Supplemental/Arial.ttf",
+                self.font_size
+            )
+
 
 # word-wrapping function ; splits the text into words, then builds lines one word at a time. if adding the next word would push the line past 14
 # characters, it starts a new line instead
