@@ -1,22 +1,39 @@
+from pathlib import Path
 from PIL import Image, ImageDraw, ImageFont
 
-# tries to load Arial Bold ; if it's not installed on the system, falls back to regular arial ; if also missing, fall back to pillow built-in font
+
 class TextRenderer:
     def __init__(self, font_size=78):
         self.font_size = font_size
 
     def load_font(self):
-        font_path = "/System/Library/Fonts/Supplemental/Arial Bold.ttf"
+        project_root = Path(__file__).resolve().parents[3]
 
-        try:
-            print(f"Loading font from: {font_path}")
-            return ImageFont.truetype(font_path, self.font_size)
-        except OSError:
-            print("Arial Bold not found, using Helvetica")
-            return ImageFont.truetype(
-                "/System/Library/Fonts/Supplemental/Arial.ttf",
-                self.font_size
-            )
+        font_paths = [
+            project_root / "assets" / "fonts" / "DejaVuSans-Bold.ttf",
+
+            # macOS
+            Path("/System/Library/Fonts/Supplemental/Arial Bold.ttf"),
+            Path("/System/Library/Fonts/Supplemental/Arial.ttf"),
+
+            # Windows
+            Path("C:/Windows/Fonts/arialbd.ttf"),
+            Path("C:/Windows/Fonts/arial.ttf"),
+
+            # Linux fallback
+            Path("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"),
+            ]
+
+        for font_path in font_paths:
+            try:
+                if font_path.exists():
+                    print(f"Loading font from: {font_path}")
+                    return ImageFont.truetype(str(font_path), self.font_size)
+            except OSError:
+                continue
+
+        print("No TrueType font found, using Pillow default font")
+        return ImageFont.load_default()
 
 
 # word-wrapping function ; splits the text into words, then builds lines one word at a time. if adding the next word would push the line past 14
