@@ -17,7 +17,14 @@ def parse_args() -> Config:
     parser.add_argument("--output_name", required=False, default="output.png", help="Name of the output file")
     # --preview flag update in Sprint 1 for UX Isses/User Stories
     parser.add_argument("--preview", dest="preview", action="store_true", help="Open a preview window of the generated image before saving")
-
+    
+    # --- Epic B - Issue 1: Text Styling CLI Args ---
+    # Change: Added --font, --text_color, and --stroke_color command line arguments.
+    # Reason: To provide flexibility and allow external text styling instead of hardcoded values.
+    # If these arguments are omitted, sensible default values will be applied via Config.
+    parser.add_argument("--font", required=False, default=None, help="Path to a custom TrueType font file (.ttf)")
+    parser.add_argument("--text_color", required=False, default="white", help="Color of the text (e.g., 'red', '#FFFFFF'). Defaults to white.")
+    parser.add_argument("--stroke_color", required=False, default=None, help="Optional color for the text outline (e.g., 'black').")
     args = parser.parse_args()
 
     return Config(
@@ -29,4 +36,7 @@ def parse_args() -> Config:
         output_path=args.output_path,
         output_name=args.output_name,
         preview=args.preview,
+        font=args.font,
+        text_color=args.text_color,
+        stroke_color=args.stroke_color,
     )
