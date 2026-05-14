@@ -12,3 +12,11 @@ class Config:
     output_path: Optional[str] = None
     output_name: str = "output.png"
     preview: bool = False
+    
+    # --- Epic B - Issue 1: Text Styling Config ---
+    # Change: Added 'font', 'text_color', and 'stroke_color' fields to the Config dataclass.
+    # Reason: Previously, font and color settings were entirely hardcoded.
+    # This change allows users to specify custom fonts and colors via the CLI.
+    font: Optional[str] = None
+    text_color: str = "white"
+    stroke_color: Optional[str] = None
