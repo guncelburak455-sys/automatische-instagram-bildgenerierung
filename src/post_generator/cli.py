@@ -9,7 +9,7 @@ def parse_args() -> Config:
     )
 
     parser.add_argument("--photo", required=True, help="Path to the input photo")
-    parser.add_argument("--position", required=True, choices=["bottom-left", "bottom-right", "top-left", "top-right"], help="Corner for the motive")
+    parser.add_argument("--position", required=True, choices=["bottom-left", "bottom-right", "top-left", "top-right", "random"], help="Corner for the motive")
     parser.add_argument("--text", required=True, help="Text inside of the motive")
     parser.add_argument("--x", type=int, default=0, help="Horizontal position of the text in the motive")
     parser.add_argument("--y", type=int, default=0, help="Vertical position of the text in the motive")
