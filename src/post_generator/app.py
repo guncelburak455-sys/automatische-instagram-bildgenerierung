@@ -30,7 +30,27 @@ def _build_image(config: Config) -> tuple[Image.Image, str]:
     result = composition.compose(bg, generated_mask)
 
     renderer = TextRenderer()
-    result = renderer.draw_text_on_overlay(result, config.text, overlay.bounds, position, config.x, config.y)
+    # --- Epic B - Issue 2 & 3: Visual Center & Text Rendering Engine ---
+    # Change:
+    # 1. Called transform.get_visual_center to calculate the true visual center.
+    # 2. Passed new arguments (font, text_color, stroke_color) to renderer.draw_text_on_overlay.
+    # Reason: To use the dynamic visual center instead of hardcoded alignment values,
+    # and to pass the newly added styling config (Issue 1) to the text renderer engine.
+    visual_center = transform.get_visual_center(overlay.cells, CELL_SIZE, overlay.offset, position)
+    result = renderer.draw_text_on_overlay(
+        image=result,
+        text=config.text,
+        bounds=overlay.bounds,
+        visual_center=visual_center,
+        cells=overlay.cells,
+        cell_size=CELL_SIZE,
+        offset=overlay.offset,
+        x_offset=config.x,
+        y_offset=config.y,
+        font_name=config.font,
+        text_color=config.text_color,
+        stroke_color=config.stroke_color
+    )
 
     return result, position
 
