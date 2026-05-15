@@ -88,15 +88,45 @@ def _interactive_loop(config: Config, out_path: str) -> None:
             return
 
 
-def generate_post(config: Config) -> None:
-    """Orchestrates image generation. With --preview, enters an interactive R/S/Q loop."""
-    out_path = _resolve_output_path(config)
+def generate_post(config: Config):
+    bg = Image.open(Path(config.photo)).convert("RGBA")
+    bg = crop_to_4_5(bg)
+
+    rng = random.Random()
+
+    # If config.position is "random", this chooses one real corner.
+    # If config.position is already "top-left", etc., it keeps that.
+    position = transform.choose_position(config.position, rng)
+
+    overlay = build_overlay_layout(position, rng)
+
+    generated_mask = mask.build_smooth_mask(
+        bg.size,
+        overlay.cells,
+        CELL_SIZE,
+        overlay.offset
+    )
+
+    result = composition.compose(bg, generated_mask)
+
+    renderer = TextRenderer()
+    result = renderer.draw_text_on_overlay(
+        result,
+        config.text,
+        overlay.bounds,
+        position,
+        config.x,
+        config.y
+    )
 
     if config.preview:
-        _interactive_loop(config, out_path)
-        return
+        show_preview(result, position, config.text, config.x, config.y)
 
-    image, position = _build_image(config)
-    composition.save_output(image, out_path)
+    output_dir = config.output_path if config.output_path else "."
+    output_name = config.output_name if Path(config.output_name).suffix else config.output_name + ".png"
+    out_path = str(Path(output_dir) / output_name)
+
+    composition.save_output(result, out_path)
+
     print(f"Done. Position: {position}")
     print(f"Saved to: {out_path}")

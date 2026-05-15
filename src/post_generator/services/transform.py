@@ -18,6 +18,14 @@ def mirror_cells(cells, width, height, horizontal=False, vertical=False):
         out.append((nx, ny))
     return out
 
+VALID_POSITIONS = ["top-left", "top-right", "bottom-left", "bottom-right"]
+
+
+def choose_position(position: str, rng: random.Random) -> str:
+    if position == "random" or position is None:
+        return rng.choice(VALID_POSITIONS)
+
+    return position
 # maps each corner to the right mirroring operation
 def transform_for_position(cells, width, height, position):
     if position == "top-left":
