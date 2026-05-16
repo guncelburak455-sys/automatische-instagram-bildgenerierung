@@ -31,7 +31,6 @@ class OverlayLayout:
     width: int
     height: int
 
-
 # Different base stair shapes. 1 = filled overlay cell, 0 = empty cell.
 # These are top-left corner variants; other corners are derived by mirroring.
 BASE_TEMPLATES = [
@@ -41,7 +40,7 @@ BASE_TEMPLATES = [
         "1111110",
         "1111100",
         "1110000",
-        "0100000",
+        "0000100",
     ],
     [
         "1111110",
@@ -49,7 +48,7 @@ BASE_TEMPLATES = [
         "1111110",
         "1111000",
         "1110000",
-        "0110000",
+        "0000100",
     ],
     [
         "1111110",
@@ -57,7 +56,7 @@ BASE_TEMPLATES = [
         "1111100",
         "1111000",
         "1100000",
-        "0100000",
+        "0000000",
     ],
 ]
 
@@ -65,7 +64,9 @@ BASE_TEMPLATES = [
 BASE_TEMPLATE = BASE_TEMPLATES[0]
 
 # Cells where random variation is allowed. Coordinates are (x, y), 0-based.
-ALLOWED_ADD = [(5, 4), (6, 2), (4, 5)]
+# Avoid y=5 because it creates the extra bottom square/notch after mirroring.
+ALLOWED_ADD = [(6, 2)]
+
 ALLOWED_REMOVE = [(5, 1), (4, 3), (2, 5)]
 
 
