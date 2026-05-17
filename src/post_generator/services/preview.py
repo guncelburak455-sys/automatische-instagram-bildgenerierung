@@ -19,34 +19,29 @@ def _load_font(size: int) -> ImageFont.ImageFont:
     for name in ("arialbd.ttf", "arial.ttf", "DejaVuSans.ttf"):
         try:
             return ImageFont.truetype(name, size)
-        except OSError:
+        except OSError:                                                         # in case of MacOS, which doesn't accept ImageFont library
             continue
     return ImageFont.load_default()
 
-
+# takes the image and a max height and returns an Image whose height is at most max_height
 def _fit_to_screen(image: Image.Image, max_height: int) -> Image.Image:
     if image.height <= max_height:
-        return image.copy()
-    scale = max_height / image.height
+        return image.copy()                                                                 # no scaling needed if image shorter than max_height
+    scale = max_height / image.height                                                       # if not shorter, then compute the shrink factor
     new_size = (max(1, int(image.width * scale)), max_height)
     return image.resize(new_size, Image.LANCZOS)
 
-
+# takes the image with all parameters and outputs a new image where the original isn't modified
 def _build_preview(image: Image.Image, position: str, text: str, x: int, y: int, variation: int) -> Image.Image:
-    """Return a new image: the generated post with an info strip drawn underneath.
 
-    The strip shows the run title (with variation counter), position+offset, and
-    the user's text — so the user sees what produced the result without needing
-    a windowing toolkit.
-    """
     image_max_h = _MAX_PREVIEW_HEIGHT - _INFO_STRIP_HEIGHT
-    scaled = _fit_to_screen(image.convert("RGB"), image_max_h)
+    scaled = _fit_to_screen(image.convert("RGB"), image_max_h)              # preserves the aspect ratio
 
-    canvas = Image.new("RGB", (scaled.width, scaled.height + _INFO_STRIP_HEIGHT), _INFO_BG)
-    canvas.paste(scaled, (0, 0))
+    canvas = Image.new("RGB", (scaled.width, scaled.height + _INFO_STRIP_HEIGHT), _INFO_BG)     # create an empty preview canvas
+    canvas.paste(scaled, (0, 0))                                                                      # drops the scaled post into the canvas
 
-    draw = ImageDraw.Draw(canvas)
-    title_font = _load_font(18)
+    draw = ImageDraw.Draw(canvas)                           # wraps the canvas in a Draw Object, PIL's drawing handle
+    title_font = _load_font(18)                             # loading the font sizes for the title and the info bar at the bottom
     body_font = _load_font(14)
 
     title = f"Preview - THWS Post  |  Variation #{variation}  |  Position: {position}"
@@ -62,25 +57,20 @@ def _build_preview(image: Image.Image, position: str, text: str, x: int, y: int,
 
     return canvas
 
-
+# opens an OS image viewer with the labeled preview of the generated post
 def show_preview(image: Image.Image, position: str, text: str, x: int, y: int, variation: int = 1) -> None:
-    """Open a preview window for the generated image.
 
-    Builds a decorated copy with an info strip and hands it to PIL.Image.show()
-    so the user gets a labeled preview without needing tkinter or any extra
-    pip dependency. Errors are swallowed so the save step still runs.
-    """
     title = f"Preview - THWS Post (Variation #{variation}, {position})"
     try:
         preview_img = _build_preview(image, position, text, x, y, variation)
         preview_img.show(title=title)
-    except Exception as exc:
+    except Exception as exc:                                                                        # failure exception for any failed use case
         print(f"[preview] could not display preview: {exc}")
 
 
 POSITIONS = ("top-left", "top-right", "bottom-left", "bottom-right")
 
-
+# used by all of the interactive prompts (read_action, read_regenerate_choice, prompt_position, prompt_history_pick)
 def _read_key(allowed: tuple[str, ...]) -> str:
     """Block until the user presses one of `allowed` keys. Returns the lowercase char.
 
@@ -94,17 +84,17 @@ def _read_key(allowed: tuple[str, ...]) -> str:
 
     if msvcrt is not None:
         while True:
-            ch = msvcrt.getch()
+            ch = msvcrt.getch()                                             # read the character inputted
             if not ch:
                 continue
             key = ch.decode("utf-8", errors="ignore").lower()
-            if key in allowed:
+            if key in allowed:                                              # only return when the press is in the menu's valid options
                 return key
 
     prompt = f"Press [{'/'.join(k.upper() for k in allowed)}] then Enter: "
     while True:
-        line = input(prompt).strip().lower()
-        if line and line[0] in allowed:
+        line = input(prompt).strip().lower()                                # reads the input
+        if line and line[0] in allowed:                                     # only lok at the first character
             return line[0]
 
 
@@ -112,12 +102,12 @@ def read_action() -> str:
     """Top-level shortcut: R/S/Q/Z."""
     return _read_key(("r", "s", "q", "z"))
 
-
+# parses the user's given output path into the three pieces the history operation needs
 def _history_paths(out_path: str, max_keep: int = HISTORY_MAX_KEEP) -> tuple[Path, str, str]:
-    out = Path(out_path)
-    history_dir = out.parent / HISTORY_DIR_NAME
+    out = Path(out_path)                                                        # wraps the string in a pathlib.Path
+    history_dir = out.parent / HISTORY_DIR_NAME                                 # compute where the history files live
     stem = out.stem
-    suffix = out.suffix or ".png"
+    suffix = out.suffix or ".png"                                               # default to PNG if not extension from user
     return history_dir, stem, suffix
 
 
@@ -128,18 +118,18 @@ def save_to_history(image: Image.Image, out_path: str, max_keep: int = HISTORY_M
     so a flaky filesystem can't break the interactive loop.
     """
     try:
-        history_dir, stem, suffix = _history_paths(out_path, max_keep)
-        history_dir.mkdir(parents=True, exist_ok=True)
+        history_dir, stem, suffix = _history_paths(out_path, max_keep)      # calls history_paths to derive the folder, base name and extension
+        history_dir.mkdir(parents=True, exist_ok=True)                      # creates the history/ folder
 
-        oldest = history_dir / f"{stem}_v{max_keep}{suffix}"
+        oldest = history_dir / f"{stem}_v{max_keep}{suffix}"                # drops the oldest slot first
         if oldest.exists():
             oldest.unlink()
-        for i in range(max_keep - 1, 0, -1):
+        for i in range(max_keep - 1, 0, -1):                                # shift every remaining file up by one slot
             src = history_dir / f"{stem}_v{i}{suffix}"
             if src.exists():
                 src.rename(history_dir / f"{stem}_v{i + 1}{suffix}")
 
-        target = history_dir / f"{stem}_v1{suffix}"
+        target = history_dir / f"{stem}_v1{suffix}"                         # builds the path for the new file
         if target.suffix.lower() == ".png":
             image.save(target, compress_level=1)
         else:
@@ -147,13 +137,13 @@ def save_to_history(image: Image.Image, out_path: str, max_keep: int = HISTORY_M
     except Exception as exc:
         print(f"[history] could not write history snapshot: {exc}")
 
-
+# returns the existing history snapshots
 def list_history(out_path: str, max_keep: int = HISTORY_MAX_KEEP) -> list[Path]:
-    history_dir, stem, suffix = _history_paths(out_path, max_keep)
-    if not history_dir.exists():
+    history_dir, stem, suffix = _history_paths(out_path, max_keep)                  # re-derive the folder, base name and extension from output path
+    if not history_dir.exists():                                                    # if first time running preview, nothing to list
         return []
     return [
-        p for p in (history_dir / f"{stem}_v{i}{suffix}" for i in range(1, max_keep + 1))
+        p for p in (history_dir / f"{stem}_v{i}{suffix}" for i in range(1, max_keep + 1))   # builds the list
         if p.exists()
     ]
 
