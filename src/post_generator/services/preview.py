@@ -1,4 +1,9 @@
+from pathlib import Path
+
 from PIL import Image, ImageDraw, ImageFont
+
+HISTORY_DIR_NAME = "history"
+HISTORY_MAX_KEEP = 5
 
 # Maximum height the preview should occupy (image + info strip combined),
 # so the 4:5 image fits comfortably on a typical screen.
@@ -104,8 +109,71 @@ def _read_key(allowed: tuple[str, ...]) -> str:
 
 
 def read_action() -> str:
-    """Top-level shortcut: R/S/Q."""
-    return _read_key(("r", "s", "q"))
+    """Top-level shortcut: R/S/Q/Z."""
+    return _read_key(("r", "s", "q", "z"))
+
+
+def _history_paths(out_path: str, max_keep: int = HISTORY_MAX_KEEP) -> tuple[Path, str, str]:
+    out = Path(out_path)
+    history_dir = out.parent / HISTORY_DIR_NAME
+    stem = out.stem
+    suffix = out.suffix or ".png"
+    return history_dir, stem, suffix
+
+
+def save_to_history(image: Image.Image, out_path: str, max_keep: int = HISTORY_MAX_KEEP) -> None:
+    """Rotate <stem>_v{N-1} -> <stem>_vN (deleting the oldest), then write the new image as _v1.
+
+    Lives next to the resolved output file in a `history/` folder. Errors are swallowed
+    so a flaky filesystem can't break the interactive loop.
+    """
+    try:
+        history_dir, stem, suffix = _history_paths(out_path, max_keep)
+        history_dir.mkdir(parents=True, exist_ok=True)
+
+        oldest = history_dir / f"{stem}_v{max_keep}{suffix}"
+        if oldest.exists():
+            oldest.unlink()
+        for i in range(max_keep - 1, 0, -1):
+            src = history_dir / f"{stem}_v{i}{suffix}"
+            if src.exists():
+                src.rename(history_dir / f"{stem}_v{i + 1}{suffix}")
+
+        target = history_dir / f"{stem}_v1{suffix}"
+        if target.suffix.lower() == ".png":
+            image.save(target, compress_level=1)
+        else:
+            image.save(target)
+    except Exception as exc:
+        print(f"[history] could not write history snapshot: {exc}")
+
+
+def list_history(out_path: str, max_keep: int = HISTORY_MAX_KEEP) -> list[Path]:
+    history_dir, stem, suffix = _history_paths(out_path, max_keep)
+    if not history_dir.exists():
+        return []
+    return [
+        p for p in (history_dir / f"{stem}_v{i}{suffix}" for i in range(1, max_keep + 1))
+        if p.exists()
+    ]
+
+
+def prompt_history_pick(out_path: str, max_keep: int = HISTORY_MAX_KEEP) -> Path | None:
+    """List rolling history files and let the user pick one to save (or cancel)."""
+    paths = list_history(out_path, max_keep)
+    if not paths:
+        print("No previous variations in history yet.")
+        return None
+    print("Pick a previous variation to save:")
+    for idx, p in enumerate(paths, 1):
+        label = "newest" if idx == 1 else f"{idx - 1} regen(s) ago"
+        print(f"  [{idx}] {p.name}   ({label})")
+    print("  [C] cancel")
+    allowed = tuple(str(i) for i in range(1, len(paths) + 1)) + ("c",)
+    key = _read_key(allowed)
+    if key == "c":
+        return None
+    return paths[int(key) - 1]
 
 
 def read_regenerate_choice() -> str:

@@ -55,13 +55,16 @@ def _build_image(config: Config) -> tuple[Image.Image, str]:
     return result, position
 
 
-_HINT = "[R] regenerate   [S] save & quit   [Q] quit without saving"
+_HINT = "[R] regenerate   [S] save & quit   [Z] zurueck (pick previous)   [Q] quit without saving"
 
 
 def _interactive_loop(config: Config, out_path: str) -> None:
-    """Show preview, read R/S/Q, regenerate / save / quit accordingly."""
+    """Show preview, read R/S/Z/Q, regenerate / save / pick previous / quit."""
+    from .services.preview import save_to_history, prompt_history_pick
+
     variation = 1
     image, position = _build_image(config)
+    save_to_history(image, out_path)
     show_preview(image, position, config.text, config.x, config.y, variation)
     print(_HINT)
 
@@ -76,12 +79,22 @@ def _interactive_loop(config: Config, out_path: str) -> None:
             variation += 1
             print(f"Regenerating (variation #{variation}, position={config.position})...")
             image, position = _build_image(config)
+            save_to_history(image, out_path)
             show_preview(image, position, config.text, config.x, config.y, variation)
             print(_HINT)
         elif action == "s":
             composition.save_output(image, out_path)
             print(f"Saved variation #{variation}. Position: {position}")
             print(f"Saved to: {out_path}")
+            return
+        elif action == "z":
+            picked = prompt_history_pick(out_path)
+            if picked is None:
+                print(_HINT)
+                continue
+            chosen = Image.open(picked).convert("RGBA")
+            composition.save_output(chosen, out_path)
+            print(f"Saved {picked.name} -> {out_path}")
             return
         elif action == "q":
             print("Quit without saving.")
