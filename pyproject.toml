@@ -9,7 +9,10 @@ description = "Command-line tool for generating THWS-style Instagram images"
 dependencies = [
     "Pillow"
 ]
-
+[project.optional-dependencies]
+dev = [
+    "pytest"
+]
 [project.scripts]
 ig_bild = "post_generator.runner:main"
 
