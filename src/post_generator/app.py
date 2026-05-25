@@ -59,7 +59,6 @@ _HINT = "[R] regenerate   [S] save & quit   [Z] zurueck (pick previous)   [Q] qu
 
 # takes the parsed Config CLI and the output file path ; returns nothing, driven by R/S/Q
 def _interactive_loop(config: Config, out_path: str) -> None:
-    """Show preview, read R/S/Z/Q, regenerate / save / pick previous / quit."""
     from .services.preview import save_to_history, prompt_history_pick
 
     variation = 1                                                               # counter for each iteration
