@@ -54,61 +54,60 @@ def _build_image(config: Config) -> tuple[Image.Image, str]:
 
     return result, position
 
-
+# shows up each time we run a command with the --preview cli parameter
 _HINT = "[R] regenerate   [S] save & quit   [Z] zurueck (pick previous)   [Q] quit without saving"
 
-
+# takes the parsed Config CLI and the output file path ; returns nothing, driven by R/S/Q
 def _interactive_loop(config: Config, out_path: str) -> None:
-    """Show preview, read R/S/Z/Q, regenerate / save / pick previous / quit."""
     from .services.preview import save_to_history, prompt_history_pick
 
-    variation = 1
-    image, position = _build_image(config)
-    save_to_history(image, out_path)
-    show_preview(image, position, config.text, config.x, config.y, variation)
-    print(_HINT)
+    variation = 1                                                               # counter for each iteration
+    image, position = _build_image(config)                                      # as per the issue, new pipeline run every iteration
+    save_to_history(image, out_path)                                            # writes the variation in the history folder
+    show_preview(image, position, config.text, config.x, config.y, variation)   # opens the image via PIL.Image.show()
+    print(_HINT)                                                                # prints the command menu again to wait for R/S/Q
 
-    while True:
+    while True:                                                                 # loop bis ich S/R/Q drucke
         action = read_action()
         if action == "r":
-            choice = read_regenerate_choice()
+            choice = read_regenerate_choice()                                   # asks for a follow-up ; intended for random positioning
             if choice == "p":
-                config.position = prompt_position(config.position)
+                config.position = prompt_position(config.position)              # asks for a new position
             elif choice == "t":
-                config.text = prompt_text(config.text)
-            variation += 1
+                config.text = prompt_text(config.text)                          # asks for a new text parameter
+            variation += 1                                                      # add to the counter after each keystroke
             print(f"Regenerating (variation #{variation}, position={config.position})...")
             image, position = _build_image(config)
             save_to_history(image, out_path)
             show_preview(image, position, config.text, config.x, config.y, variation)
             print(_HINT)
-        elif action == "s":
+        elif action == "s":                                                     # save the output
             composition.save_output(image, out_path)
             print(f"Saved variation #{variation}. Position: {position}")
             print(f"Saved to: {out_path}")
             return
-        elif action == "z":
+        elif action == "z":                                                     # go back to an old variation
             picked = prompt_history_pick(out_path)
-            if picked is None:
+            if picked is None:                                                  # fallback if we clicked Z by accident
                 print(_HINT)
                 continue
             chosen = Image.open(picked).convert("RGBA")
             composition.save_output(chosen, out_path)
             print(f"Saved {picked.name} -> {out_path}")
             return
-        elif action == "q":
+        elif action == "q":                                                     # in case we decide to quit the whole process
             print("Quit without saving.")
             return
 
 
 def generate_post(config: Config):
-    out_path = _resolve_output_path(config)
+    out_path = _resolve_output_path(config)                                     # build the output path ; adds .png if no extension
 
-    if config.preview:
+    if config.preview:                                                          # if we gave --preview flag in the command, run the following
         _interactive_loop(config, out_path)
         return
 
-    image, position = _build_image(config)
-    composition.save_output(image, out_path)
-    print(f"Done. Position: {position}")
+    image, position = _build_image(config)                                      # build the image
+    composition.save_output(image, out_path)                                    # save it
+    print(f"Done. Position: {position}")                                        # print the information
     print(f"Saved to: {out_path}")
