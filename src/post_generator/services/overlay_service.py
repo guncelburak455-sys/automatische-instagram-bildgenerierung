@@ -69,6 +69,63 @@ ALLOWED_ADD = [(6, 2)]
 
 ALLOWED_REMOVE = [(5, 1), (4, 3), (2, 5)]
 
+# ---------------------------------------------------------------------------
+# Side templates for "left" / "right" positions.
+# These are wider, vertically-centered overlays that hug one wall and extend
+# a fingerprint-style trail toward the opposite side.  Authored in the "left"
+# orientation; the "right" variant is derived by horizontal mirroring in the
+# transform service (same approach as corners).
+#
+# Design:  columns 0-3 → solid text block (where the caption is rendered)
+#          columns 4-6 → sparse fingerprint trail (scattered cells)
+#
+# Mutation rules for side templates. Coordinates are (x, y), 0-based.
+# These target cells along the fingerprint trail (right side) where adding
+# or removing a dot still looks natural without breaking the solid text block.
+# ---------------------------------------------------------------------------
+
+BASE_TEMPLATES_SIDE = [
+    # Variant 1 — trail reaches far right with one isolated dot
+    [
+        "0011000",
+        "0111100",
+        "1111110",
+        "1111101",
+        "1111110",
+        "1111100",
+        "0111000",
+        "0010000",
+    ],
+    # Variant 2 — wider top, two separated fingerprint dots
+    [
+        "0111000",
+        "1111100",
+        "1111110",
+        "1111001",
+        "1111100",
+        "0111010",
+        "0011000",
+        "0010000",
+    ],
+    # Variant 3 — denser trail, more organic silhouette
+    [
+        "0011000",
+        "1111100",
+        "1111110",
+        "1111011",
+        "1111110",
+        "0111100",
+        "0011000",
+        "0010000",
+    ],
+]
+
+# Cells where random variation is allowed on side templates.
+# Only targets the fingerprint trail region (columns 4-6) so the solid
+# text block on the left stays intact.
+ALLOWED_ADD_SIDE = [(5, 1), (6, 4), (5, 6)]
+ALLOWED_REMOVE_SIDE = [(6, 3), (5, 5), (6, 5)]
+
 
 def template_to_grid(template: Template) -> Grid:
     """Convert the string template into a mutable 2D grid."""
