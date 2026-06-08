@@ -6,7 +6,7 @@ from pathlib import Path
 from .config import Config
 
 
-POSITIONS = ["bottom-left", "bottom-right", "top-left", "top-right", "random"]
+POSITIONS = ["bottom-left", "bottom-right", "top-left", "top-right", "left", "right", "random"]
 
 
 def generate_output_name() -> str:
@@ -109,7 +109,7 @@ def parse_args() -> Config:
             "Interactive mode:\n"
             "  python3 main.py\n\n"
             "Available positions:\n"
-            "  bottom-left, bottom-right, top-left, top-right, random"
+            "  bottom-left, bottom-right, top-left, top-right, left, right, random"
         ),
         formatter_class=argparse.RawTextHelpFormatter,
     )
@@ -119,7 +119,7 @@ def parse_args() -> Config:
         "--position",
         required=True,
         choices=POSITIONS,
-        help="Corner for the motive: bottom-left, bottom-right, top-left, top-right, random"
+        help="Position for the motive: bottom-left, bottom-right, top-left, top-right, left, right, random"
     )
     parser.add_argument("--text", required=True, help="Text inside of the motive")
     parser.add_argument("--x", type=int, default=0, help="Horizontal text offset in pixels")

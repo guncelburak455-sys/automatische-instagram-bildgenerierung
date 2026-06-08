@@ -18,7 +18,7 @@ def mirror_cells(cells, width, height, horizontal=False, vertical=False):
         out.append((nx, ny))
     return out
 
-VALID_POSITIONS = ["top-left", "top-right", "bottom-left", "bottom-right"]
+VALID_POSITIONS = ["top-left", "top-right", "bottom-left", "bottom-right", "left", "right"]
 
 
 def choose_position(position: str, rng: random.Random) -> str:
@@ -34,6 +34,10 @@ def transform_for_position(cells, width, height, position):
         return mirror_cells(cells, width, height, horizontal=True)
     if position == "bottom-left":
         return mirror_cells(cells, width, height, vertical=True)
+    if position == "left":
+        return cells
+    if position == "right":
+        return mirror_cells(cells, width, height, horizontal=True)
     return mirror_cells(cells, width, height, horizontal=True, vertical=True)
 
 # returns the pixel (x, y) where the top-left of the shape grid should be places so it sits flush in the chosen corner
@@ -47,6 +51,10 @@ def anchor_offset(template_w, template_h, cell, position):
         return INSTAGRAM_WIDTH - shape_w, 0
     if position == "bottom-left":
         return 0, INSTAGRAM_HEIGHT - shape_h
+    if position == "left":
+        return 0, (INSTAGRAM_HEIGHT - shape_h) // 2
+    if position == "right":
+        return INSTAGRAM_WIDTH - shape_w, (INSTAGRAM_HEIGHT - shape_h) // 2
     return INSTAGRAM_WIDTH - shape_w, INSTAGRAM_HEIGHT - shape_h
 
 # function that has been replaced by get_overlay_bounds
