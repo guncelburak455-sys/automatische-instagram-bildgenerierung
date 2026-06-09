@@ -17,7 +17,7 @@ The tool takes an input photo, crops it appropriately, overlays a THWS-branded o
 
 * **Automatic Image Cropping**: Resizes and crops the image to the standard Instagram portrait format (4:5).
 * **THWS-branded Overlay**: Automatically applies a smoothly generated mask and orange motive.
-* **Flexible Positioning**: Choose from 4 corners (`top-left`, `top-right`, `bottom-left`, `bottom-right`) for the overlay.
+* **Flexible Positioning**: Choose from 4 corners (`top-left`, `top-right`, `bottom-left`, `bottom-right`) or the wide side overlays (`left`, `right`) for the overlay.
 * **Custom Text Rendering**: Add your own text inside the motive.
 * **Adjustable Text Coordinates**: Fine-tune the text placement with custom X and Y offsets.
 * **Modular Architecture**: Clean, maintainable codebase utilizing `dataclasses` and separated service layers.
@@ -104,7 +104,7 @@ ig_bild --photo campus.jpg --position top-right --text "THWS Partner" --x 30 --y
 | Parameter       | Description                                                          | Default Value | Required |
 | --------------- | -------------------------------------------------------------------- | ------------- | -------- |
 | `--photo`       | Path to the input image file                                         | None          | Yes      |
-| `--position`    | Motive corner (`top-left`, `top-right`, `bottom-left`, `bottom-right`) | None          | Yes      |
+| `--position`    | Motive position (`top-left`, `top-right`, `bottom-left`, `bottom-right`, `left`, `right`) | None          | Yes      |
 | `--text`        | Text to be displayed inside the motive                               | None          | Yes      |
 | `--x`           | Horizontal (X) offset for the text                                   | `0`           | No       |
 | `--y`           | Vertical (Y) offset for the text                                     | `0`           | No       |
