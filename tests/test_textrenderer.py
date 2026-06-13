@@ -1,6 +1,6 @@
 import pytest
 from unittest.mock import patch, MagicMock
-from PIL import ImageFont
+from PIL import Image, ImageFont
 from post_generator.services.textrenderer import TextRenderer
 
 @pytest.fixture
@@ -190,3 +190,106 @@ def test_wrap_text_single_word_longer_than_threshold(mock_textbbox, renderer, de
     # It shouldn't break the word itself
     assert result == "Supercalifragilisticexpialidocious"
     assert "\n" not in result
+
+
+def test_draw_text_on_overlay_basic(renderer):
+    """
+    Test draw_text_on_overlay with standard inputs and verify it runs successfully.
+    """
+    img = Image.new("RGBA", (1080, 1350), (255, 0, 0, 255))
+    cells = [(0, 0), (1, 0), (0, 1), (1, 1)]
+    result = renderer.draw_text_on_overlay(
+        image=img,
+        text="Hello World",
+        bounds=(100, 100, 300, 300),
+        visual_center=(200, 200),
+        cells=cells,
+        cell_size=100,
+        offset=(100, 100)
+    )
+    assert result.size == (1080, 1350)
+    assert isinstance(result, Image.Image)
+
+
+def test_draw_text_on_overlay_empty_text(renderer):
+    """
+    Verify that an empty string text input does not cause crashes.
+    """
+    img = Image.new("RGBA", (1080, 1350), (255, 0, 0, 255))
+    cells = [(0, 0), (1, 0), (0, 1), (1, 1)]
+    result = renderer.draw_text_on_overlay(
+        image=img,
+        text="",
+        bounds=(100, 100, 300, 300),
+        visual_center=(200, 200),
+        cells=cells,
+        cell_size=100,
+        offset=(100, 100)
+    )
+    assert result.size == (1080, 1350)
+
+
+def test_draw_text_on_overlay_extremely_long_text(renderer):
+    """
+    Verify that extremely long text shrinks the font size to minimum size
+    and processes successfully without crashing.
+    """
+    img = Image.new("RGBA", (1080, 1350), (255, 0, 0, 255))
+    # A single cell to constrain the fit, plus very long text
+    cells = [(0, 0)]
+    long_text = "This is an extremely long sentence that will require the auto-fit loop to shrink the font size down to the minimum limit to try to fit it inside a single grid cell."
+    
+    result = renderer.draw_text_on_overlay(
+        image=img,
+        text=long_text,
+        bounds=(100, 100, 200, 200),
+        visual_center=(150, 150),
+        cells=cells,
+        cell_size=100,
+        offset=(100, 100)
+    )
+    assert result.size == (1080, 1350)
+
+
+def test_draw_text_on_overlay_with_stroke_and_offsets(renderer):
+    """
+    Verify that custom styling options like stroke_color and layout offsets work correctly.
+    """
+    img = Image.new("RGBA", (1080, 1350), (255, 0, 0, 255))
+    cells = [(0, 0), (1, 0), (0, 1), (1, 1)]
+    result = renderer.draw_text_on_overlay(
+        image=img,
+        text="Styled Text",
+        bounds=(100, 100, 300, 300),
+        visual_center=(200, 200),
+        cells=cells,
+        cell_size=100,
+        offset=(100, 100),
+        x_offset=10,
+        y_offset=-20,
+        text_color="yellow",
+        stroke_color="black"
+    )
+    assert result.size == (1080, 1350)
+
+
+def test_draw_text_on_overlay_coordinates_clamping(renderer):
+    """
+    Verify that layout offset offsets that push text off-screen are clamped,
+    preventing any out-of-bounds positioning.
+    """
+    img = Image.new("RGBA", (100, 100), (255, 0, 0, 255))
+    cells = [(0, 0)]
+    result = renderer.draw_text_on_overlay(
+        image=img,
+        text="Clamping",
+        bounds=(0, 0, 100, 100),
+        visual_center=(50, 50),
+        cells=cells,
+        cell_size=100,
+        offset=(0, 0),
+        x_offset=9999,  # Push way out of screen right
+        y_offset=-9999  # Push way out of screen top
+    )
+    assert result.size == (100, 100)
+
