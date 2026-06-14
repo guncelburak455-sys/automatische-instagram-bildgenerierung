@@ -18,3 +18,8 @@ ig_bild = "post_generator.runner:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = [
+    "src"
+]
