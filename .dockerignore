@@ -1,20 +1,49 @@
+# Git
 .git
-.idea
+.gitignore
+
+# IDE files
+.idea/
+.vscode/
 *.iml
 
-__pycache__
+# Environment / secrets
+.env
+.env.*
+!.env.example
+
+# Python cache / virtual environments
+__pycache__/
 *.pyc
-.pytest_cache
-.venv
-venv
+*.pyo
+*.pyd
+.pytest_cache/
+.venv/
+venv/
+env/
 
-dist
-build
-*.egg-info
+# Build / package files
+dist/
+build/
+*.egg-info/
 
-history
+# Generated output files
+history/
 output*.png
-post_*.png
+post*.png
+docker_post.png
 
+# Large local input/demo files
+BG.jpg
+
+# README demo media, not needed inside Docker image
+docs/
 README.md
 
+# Logs
+*.log
+logs/
+
+# OS files
+.DS_Store
+Thumbs.db
