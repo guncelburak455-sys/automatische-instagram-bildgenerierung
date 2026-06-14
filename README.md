@@ -87,32 +87,19 @@ Use this mode when you want to generate an image directly with one command.
 Using `main.py`:
 
 ```bash
-python3 main.py \
-  --photo BG.jpg \
-  --position bottom-right \
-  --text "THWS Partner University" \
-  --output_name post.png
+python main.py --photo BG.jpg --position bottom-right  --text "THWS Partner University"  --output_name post.png
 ```
 
 Using the installed command:
 
 ```bash
-ig_bild \
-  --photo BG.jpg \
-  --position bottom-right \
-  --text "THWS Partner University" \
-  --output_name post.png
+ig_bild --photo BG.jpg --position bottom-right  --text "THWS Partner University" --output_name post.png
 ```
 
 Example with preview mode:
 
 ```bash
-ig_bild \
-  --photo BG.jpg \
-  --position random \
-  --text "Campus Life" \
-  --output_name preview_post.png \
-  --preview
+ig_bild --photo BG.jpg --position random  --text "Campus Life"  --output_name preview_post.png --preview
 ```
 
 ---
@@ -122,7 +109,7 @@ ig_bild \
 Use this mode when you do not want to write all options manually.
 
 ```bash
-python3 main.py
+python main.py
 ```
 
 Or, if the package is installed:
@@ -166,11 +153,7 @@ After the questions are answered, the image is generated and saved.
 Preview mode can be started with the `--preview` flag.
 
 ```bash
-ig_bild \
-  --photo BG.jpg \
-  --position random \
-  --text "Campus Life" \
-  --preview
+ig_bild --photo BG.jpg --position random  --text "Campus Life"  --output_name preview_post.png --preview
 ```
 
 In preview mode, the program shows the generated image and provides these options:
@@ -192,7 +175,11 @@ In preview mode, the program shows the generated image and provides these option
 
 You can also run the project with Docker.
 
-First, build the Docker image:
+First, Open Docker Desktop..
+
+Wait until it says Docker Desktop is running
+
+Then build the Docker image with :
 
 ```bash
 docker build -t ig-bild .
@@ -201,13 +188,9 @@ docker build -t ig-bild .
 After that, use the helper script:
 
 ```bash
-./run-docker.sh \
-  --photo BG.jpg \
-  --position bottom-right \
-  --text "THWS Partner University" \
-  --output_name docker_post.png
+./run-docker.sh  --photo BG.jpg --position bottom-right --text "THWS Partner University" --output_name docker_post.png
 ```
-
+Use `run-docker.sh` on macOS/Linux/Git Bash and `run-docker.ps1` on Windows PowerShell.
 For interactive mode, run:
 
 ```bash

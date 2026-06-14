@@ -4,4 +4,6 @@ docker run --rm -it \
   -v "$(pwd):/work" \
   -w /work \
   ig-bild \
-  ig_bild "$@"
+  ig_bild \
+  --output_path /work \
+  "$@"
