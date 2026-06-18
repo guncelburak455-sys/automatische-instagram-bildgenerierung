@@ -18,7 +18,7 @@ def mirror_cells(cells, width, height, horizontal=False, vertical=False):
         out.append((nx, ny))
     return out
 
-VALID_POSITIONS = ["top-left", "top-right", "bottom-left", "bottom-right"]
+VALID_POSITIONS = ["top-left", "top-right", "bottom-left", "bottom-right", "left", "right"]
 
 
 def choose_position(position: str, rng: random.Random) -> str:
@@ -34,6 +34,10 @@ def transform_for_position(cells, width, height, position):
         return mirror_cells(cells, width, height, horizontal=True)
     if position == "bottom-left":
         return mirror_cells(cells, width, height, vertical=True)
+    if position == "left":
+        return cells
+    if position == "right":
+        return mirror_cells(cells, width, height, horizontal=True)
     return mirror_cells(cells, width, height, horizontal=True, vertical=True)
 
 # returns the pixel (x, y) where the top-left of the shape grid should be places so it sits flush in the chosen corner
@@ -47,6 +51,10 @@ def anchor_offset(template_w, template_h, cell, position):
         return INSTAGRAM_WIDTH - shape_w, 0
     if position == "bottom-left":
         return 0, INSTAGRAM_HEIGHT - shape_h
+    if position == "left":
+        return 0, 0
+    if position == "right":
+        return INSTAGRAM_WIDTH - shape_w, 0
     return INSTAGRAM_WIDTH - shape_w, INSTAGRAM_HEIGHT - shape_h
 
 # function that has been replaced by get_overlay_bounds
@@ -83,26 +91,43 @@ def get_visual_center(cells, cell_size, offset, position=None):
     based on its grid cells. Optionally applies a shift towards the corner.
     """
     ox, oy = offset
-    
+
     if not cells:
         return ox, oy
-        
+
+    # Side positions: keep the text inside the solid block, not over the
+    # fingerprint trail. The solid block occupies columns 0..3 of the side
+    # template; for "right" the cells have been horizontally mirrored, so the
+    # solid block sits at the opposite end (columns 3..6 with width=7).
+    if position in ("left", "right"):
+        max_x = max(x for x, _ in cells)
+        if position == "left":
+            block_cells = [(x, y) for x, y in cells if x <= 3]
+        else:
+            block_cells = [(x, y) for x, y in cells if x >= max_x - 3]
+
+        avg_cell_x = sum(x for x, _ in block_cells) / len(block_cells)
+        avg_cell_y = sum(y for _, y in block_cells) / len(block_cells)
+        center_x = ox + (avg_cell_x + 0.5) * cell_size
+        center_y = oy + (avg_cell_y + 0.5) * cell_size
+        return center_x, center_y
+
     avg_cell_x = sum(x for x, y in cells) / len(cells)
     avg_cell_y = sum(y for x, y in cells) / len(cells)
-    
+
     center_x = ox + (avg_cell_x + 0.5) * cell_size
     center_y = oy + (avg_cell_y + 0.5) * cell_size
-    
+
     if position:
         shift_amount = cell_size * 0.5
         if "left" in position:
             center_x -= shift_amount
         elif "right" in position:
             center_x += shift_amount
-            
+
         if "top" in position:
             center_y -= shift_amount
         elif "bottom" in position:
             center_y += shift_amount
-            
+
     return center_x, center_y
