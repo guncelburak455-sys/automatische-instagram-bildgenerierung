@@ -5,7 +5,7 @@ from PIL import Image
 from .config import Config
 from .services import composition, mask, transform
 from .services.overlay_service import CELL_SIZE, build_overlay_layout
-from .services.preview import show_preview, read_action, read_regenerate_choice, prompt_position, prompt_text
+from .services.preview import show_preview, read_action, read_regenerate_choice, prompt_position, prompt_text, prompt_colors
 from .services.textrenderer import TextRenderer
 from .services.post_generator import crop_to_4_5
 
@@ -55,7 +55,7 @@ def _build_image(config: Config) -> tuple[Image.Image, str]:
     return result, position
 
 # shows up each time we run a command with the --preview cli parameter
-_HINT = "[R] regenerate   [S] save & quit   [Z] zurueck (pick previous)   [Q] quit without saving"
+_HINT = "[R] regenerate   [S] save & quit   [C] color   [Z] zurueck (pick previous)   [Q] quit without saving"
 
 # takes the parsed Config CLI and the output file path ; returns nothing, driven by R/S/Q
 def _interactive_loop(config: Config, out_path: str) -> None:
@@ -77,6 +77,15 @@ def _interactive_loop(config: Config, out_path: str) -> None:
                 config.text = prompt_text(config.text)                          # asks for a new text parameter
             variation += 1                                                      # add to the counter after each keystroke
             print(f"Regenerating (variation #{variation}, position={config.position})...")
+            image, position = _build_image(config)
+            save_to_history(image, out_path)
+            show_preview(image, position, config.text, config.x, config.y, variation)
+            print(_HINT)
+        elif action == "c":                                                     # change text / stroke color, then regenerate
+            config.text_color, config.stroke_color = prompt_colors(config.text_color, config.stroke_color)
+            variation += 1
+            stroke_shown = config.stroke_color if config.stroke_color else "none"
+            print(f"Regenerating (variation #{variation}, text={config.text_color}, stroke={stroke_shown})...")
             image, position = _build_image(config)
             save_to_history(image, out_path)
             show_preview(image, position, config.text, config.x, config.y, variation)
