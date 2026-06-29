@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageColor, ImageDraw, ImageFont
 
 HISTORY_DIR_NAME = "history"
 HISTORY_MAX_KEEP = 5
@@ -99,8 +99,8 @@ def _read_key(allowed: tuple[str, ...]) -> str:
 
 
 def read_action() -> str:
-    """Top-level shortcut: R/S/Q/Z."""
-    return _read_key(("r", "s", "q", "z"))
+    """Top-level shortcut: R/S/C/Q/Z."""
+    return _read_key(("r", "s", "c", "q", "z"))
 
 # parses the user's given output path into the three pieces the history operation needs
 def _history_paths(out_path: str, max_keep: int = HISTORY_MAX_KEEP) -> tuple[Path, str, str]:
@@ -170,6 +170,44 @@ def read_regenerate_choice() -> str:
     """Sub-menu after R. Returns 'p' (position), 't' (text), or 'n' (no change)."""
     print("Change before regenerating?  [P] position   [T] text   [N] nothing")
     return _read_key(("p", "t", "n"))
+
+
+def _read_color(label: str, current):
+    """Prompt for a single color, accepting hex (#FF0000) or a name (orange).
+
+    Empty input keeps `current`. Invalid input is rejected and re-prompted, so a
+    typo can't crash the loop. Returns the chosen color string (or `current`).
+    """
+    while True:
+        shown = current if current else "(none)"
+        raw = input(f"New {label} color (hex like #FF0000 or name like orange, Enter to keep '{shown}'): ").strip()
+        if not raw:
+            return current
+        try:
+            ImageColor.getrgb(raw)                                              # validates hex codes and named colors via PIL
+        except ValueError:
+            print(f"  '{raw}' is not a valid color. Try a hex code like #FF0000 or a name like orange.")
+            continue
+        return raw
+
+
+def prompt_colors(text_color, stroke_color):
+    """Sub-menu after C. Change text color, stroke color, or both.
+
+    Returns the (text_color, stroke_color) to use; unchanged or cancelled values
+    are kept as-is.
+    """
+    stroke_shown = stroke_color if stroke_color else "(none)"
+    print(f"Current colors -> text: {text_color}   stroke: {stroke_shown}")
+    print("Change which color?  [T] text   [S] stroke   [B] both   [C] cancel")
+    key = _read_key(("t", "s", "b", "c"))
+    if key == "c":
+        return text_color, stroke_color
+    if key in ("t", "b"):
+        text_color = _read_color("text", text_color)
+    if key in ("s", "b"):
+        stroke_color = _read_color("stroke", stroke_color)
+    return text_color, stroke_color
 
 
 def prompt_position(current: str) -> str:
