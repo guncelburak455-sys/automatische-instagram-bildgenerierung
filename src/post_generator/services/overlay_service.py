@@ -39,24 +39,24 @@ BASE_TEMPLATES = [
         "1111111",
         "1111110",
         "1111100",
-        "1110000",
-        "0000100",
+        "1110010",
+        "0100100",
     ],
     [
         "1111110",
         "1111111",
         "1111110",
         "1111000",
-        "1110000",
-        "0000100",
+        "1110100",
+        "0010100",
     ],
     [
         "1111110",
         "1111111",
         "1111100",
-        "1111000",
+        "1111010",
         "1100000",
-        "0000000",
+        "0010000",
     ],
 ]
 
@@ -65,9 +65,9 @@ BASE_TEMPLATE = BASE_TEMPLATES[0]
 
 # Cells where random variation is allowed. Coordinates are (x, y), 0-based.
 # Avoid y=5 because it creates the extra bottom square/notch after mirroring.
-ALLOWED_ADD = [(6, 2)]
+ALLOWED_ADD = [(6, 2), (5, 4)]
 
-ALLOWED_REMOVE = [(5, 1), (4, 3), (2, 5)]
+ALLOWED_REMOVE = [(5, 1), (4, 3), (1, 5)]
 
 # ---------------------------------------------------------------------------
 # Side templates for "left" / "right" positions.
@@ -93,35 +93,35 @@ BASE_TEMPLATES_SIDE = [
         "1111110",
         "1111101",
         "1111110",
-        "1111100",
+        "1111101",
         "1111110",
         "1111101",
         "1111100",
-        "1111000",
+        "1111010",
     ],
     # Variant 2 — slightly different trail pattern, two far-right dots
     [
         "1111110",
-        "1111100",
+        "1111101",
         "1111110",
         "1111001",
         "1111100",
         "1111110",
         "1111010",
         "1111100",
-        "1111000",
+        "1111010",
     ],
     # Variant 3 — denser trail, more organic right edge
     [
-        "1111100",
+        "1111101",
         "1111110",
         "1111011",
         "1111110",
         "1111100",
         "1111110",
-        "1111100",
+        "1111101",
         "1111110",
-        "1111000",
+        "1111010",
     ],
 ]
 
@@ -129,7 +129,7 @@ BASE_TEMPLATES_SIDE = [
 # Only targets the fingerprint trail region (columns 4-6) so the solid
 # text block on the left stays intact.
 ALLOWED_ADD_SIDE = [(5, 0), (6, 2), (5, 4), (6, 6)]
-ALLOWED_REMOVE_SIDE = [(6, 1), (5, 3), (6, 5), (5, 7)]
+ALLOWED_REMOVE_SIDE = [(6, 1), (5, 3), (5, 8), (5, 7)]
 
 
 def template_to_grid(template: Template) -> Grid:
