@@ -23,6 +23,8 @@ class TextRenderer:
         project_root = Path(__file__).resolve().parents[3]
 
         font_paths = [
+            # THWS Hausschrift (Open Sans Bold, served on thws.de) — default
+            project_root / "assets" / "fonts" / "OpenSans-Bold.ttf",
             project_root / "assets" / "fonts" / "DejaVuSans-Bold.ttf",
             Path("/System/Library/Fonts/Supplemental/Arial Bold.ttf"),
             Path("/System/Library/Fonts/Supplemental/Arial.ttf"),
@@ -75,6 +77,151 @@ class TextRenderer:
 
         return "\n".join(lines)
 
+    # --- Shape-Aware Layout: helpers -------------------------------------
+    # The renderer no longer fits text into one fixed rectangle. Instead the
+    # mask is analyzed row band by row band, so every text line gets its own
+    # maximum width based on the filled cells at that exact height. Holes in
+    # the mask split a band into separate spans, so text can never cross them.
+
+    def _cells_by_row(self, cells):
+        """Group filled cell x-coordinates by their grid row."""
+        rows = {}
+        for x, y in cells:
+            rows.setdefault(y, set()).add(x)
+        return rows
+
+    def _band_spans(self, top, bottom, rows, cell_size, offset):
+        """Contiguous horizontal pixel spans that are fully covered by filled
+        cells for the whole vertical pixel band [top, bottom).
+
+        A band that touches several grid rows only keeps the columns present
+        in ALL of them (intersection), so narrowing rows and holes both shrink
+        or split the usable spans. Returns a list of (left, right) tuples.
+        """
+        ox, oy = offset
+        gy_min = int((top - oy) // cell_size)
+        gy_max = int((bottom - 1 - oy) // cell_size)
+
+        common = None
+        for gy in range(gy_min, gy_max + 1):
+            cols = rows.get(gy)
+            if not cols:
+                return []
+            common = set(cols) if common is None else common & cols
+            if not common:
+                return []
+
+        spans = []
+        for gx in sorted(common):
+            left = ox + gx * cell_size
+            right = left + cell_size
+            if spans and spans[-1][1] == left:
+                spans[-1][1] = right
+            else:
+                spans.append([left, right])
+        return [(left, right) for left, right in spans]
+
+    # --- Letter spacing (tracking) support --------------------------------
+    # Pillow has no native letter-spacing, so when tracking != 0 lines are
+    # measured and drawn character by character with an adjusted advance.
+
+    def _char_widths(self, draw, text, font):
+        """Per-character advance cache for one font instance."""
+        cache = {}
+        for ch in set(text):
+            cache[ch] = draw.textlength(ch, font=font)
+        return cache
+
+    def _line_width(self, draw, line, font, tracking, char_cache=None):
+        if tracking == 0:
+            return draw.textlength(line, font=font)
+        if char_cache is None:
+            char_cache = self._char_widths(draw, line, font)
+        width = sum(char_cache[ch] for ch in line)
+        return width + tracking * max(0, len(line) - 1)
+
+    def _draw_line(self, draw, x, y, line, font, tracking, char_cache, **kwargs):
+        if tracking == 0:
+            draw.text((x, y), line, font=font, **kwargs)
+            return
+        cursor = x
+        for ch in line:
+            draw.text((cursor, y), ch, font=font, **kwargs)
+            cursor += char_cache[ch] + tracking
+
+    def _fit_words(self, draw, words, start, font, max_width, force=False, tracking=0, char_cache=None):
+        """Greedily pack words[start:] into max_width.
+
+        Returns (word_count, line_text, line_width). With force=True a single
+        word wider than max_width is still accepted (last-resort mode), so the
+        layout always terminates.
+        """
+        line = words[start]
+        width = self._line_width(draw, line, font, tracking, char_cache)
+        if width > max_width and not force:
+            return 0, "", 0
+        count = 1
+        while start + count < len(words):
+            candidate = line + " " + words[start + count]
+            cand_width = self._line_width(draw, candidate, font, tracking, char_cache)
+            if cand_width > max_width:
+                break
+            line, width = candidate, cand_width
+            count += 1
+        return count, line, width
+
+    def _line_height(self, draw, font):
+        try:
+            ascent, descent = font.getmetrics()
+            return ascent + descent
+        except AttributeError:
+            bbox = draw.textbbox((0, 0), "Ag", font=font)
+            return bbox[3] - bbox[1]
+
+    def _layout_lines(self, draw, words, font, start_y, rows, cell_size, offset, target_cx, pad, line_gap, force=False, tracking=0, char_cache=None):
+        """Place all words line by line starting at start_y.
+
+        Every line is constrained to the mask columns available at its own
+        height, so the resulting block follows the mask outline (trapezoid,
+        stairs, ...) instead of a fixed rectangle. Lines stay aligned to
+        target_cx whenever the shape allows it and are only shifted when the
+        available span forces them sideways.
+
+        Returns a list of (text, x, y, width, height) or None if the words do
+        not fit starting at this position.
+        """
+        line_h = self._line_height(draw, font)
+        placements = []
+        y = start_y
+        i = 0
+        while i < len(words):
+            spans = self._band_spans(y - pad, y + line_h + pad, rows, cell_size, offset)
+            best = None
+            for left, right in spans:
+                avail = (right - left) - 2 * pad
+                if avail <= 0:
+                    continue
+                count, line, width = self._fit_words(draw, words, i, font, avail, force, tracking, char_cache)
+                if count == 0:
+                    continue
+                center = (left + right) / 2
+                key = (count, avail, -abs(center - target_cx))
+                if best is None or key > best[0]:
+                    best = (key, left, right, count, line, width)
+            if best is None:
+                return None
+            _, left, right, count, line, width = best
+            lo = left + pad + width / 2
+            hi = right - pad - width / 2
+            if lo > hi:  # force mode: overlong single word, center it in the span
+                line_cx = (left + right) / 2
+            else:
+                line_cx = min(max(target_cx, lo), hi)
+            placements.append((line, line_cx - width / 2, y, width, line_h))
+            i += count
+            y += line_h + line_gap
+        return placements
+
     def _fits_in_cells(self, w, h, cx, cy, cells, cell_size, offset, padding=20):
         left = cx - w / 2 - padding
         right = cx + w / 2 + padding
@@ -96,81 +243,132 @@ class TextRenderer:
                     return False
         return True
 
-    # --- Epic B - Issue 2 & 3: Smart Text Rendering & Visual Center Integration ---
-    # Change:
-    # 1. Removed old hardcoded bias/bounds logic, replacing it with visual_center and a max inscribed rectangle fit algorithm.
-    # 2. Added an 'auto-fit loop' that progressively shrinks the font_size until it fits within max_width.
-    # 3. Added optional stroke_color (outline) support to improve text readability against the background.
-    # Reason: To resolve text overflow issues with long texts and ensure perfect centering across all corners.
-    def draw_text_on_overlay(self, image, text, bounds, visual_center, cells, cell_size, offset, x_offset=0, y_offset=0, font_name=None, text_color="white", stroke_color=None):
+    # --- Shape-Aware Text Rendering ---
+    # Change: Replaced the "maximum inscribed rectangle" fit with a per-line
+    # mask analysis. The mask is scanned in horizontal bands; every text line
+    # is wrapped and positioned against the filled cells at its own height.
+    # Reason:
+    # 1. The text block now follows the mask outline (trapezoid/stair shapes)
+    #    instead of being squeezed into one fixed rectangle, so uneven masks
+    #    (e.g. more room at the top than at the bottom) are used fully.
+    # 2. Holes inside randomly generated masks split a band into separate
+    #    spans, so no line can ever cross or overlap an empty cell.
+    # 3. The largest font size that fits anywhere in the mask wins; among
+    #    equal sizes the placement closest to the visual center is chosen.
+    def draw_text_on_overlay(self, image, text, bounds, visual_center, cells, cell_size, offset, x_offset=0, y_offset=0, font_name=None, text_color="white", stroke_color=None, letter_spacing=0):
         result = image.copy()
         draw = ImageDraw.Draw(result)
-        
+
+        words = text.split()
+        if not words or not cells:
+            return result
+
+        rows = self._cells_by_row(cells)
+        ox, oy = offset
+        mask_top = oy + min(y for _, y in cells) * cell_size
+        mask_bottom = oy + (max(y for _, y in cells) + 1) * cell_size
+
         cx, cy = visual_center
-        
-        # Dynamically calculate the maximum inscribed rectangle centered at cx, cy that fits in the mask
-        best_w = 100
-        best_h = 100
-        max_area = 0
-        
-        # Test various heights to find the bounding box with the maximum area
-        for h in range(50, 1500, 25):
-            if not self._fits_in_cells(10, h, cx, cy, cells, cell_size, offset, padding=0):
-                continue
-                
-            low = 10
-            high = 1500
-            w = low
-            while low <= high:
-                mid = (low + high) // 2
-                if self._fits_in_cells(mid, h, cx, cy, cells, cell_size, offset, padding=0):
-                    w = mid
-                    low = mid + 1
-                else:
-                    high = mid - 1
-                    
-            area = w * h
-            if area > max_area:
-                max_area = area
-                best_w = w
-                best_h = h
-                
-        # Use 90% of the best fit rectangle for text boundaries to leave a small padding
-        max_width = best_w * 0.90
-        max_height = best_h * 0.90
-        
-        # Auto-fit loop
-        font_size = 120
+        # x/y offsets bias the preferred position but the text is still kept
+        # strictly inside the mask.
+        target_cx = cx + x_offset
+        target_cy = cy + y_offset
+
+        max_font_size = 120
         min_font_size = 20
-        
-        font = self.load_font(font_name, font_size)
-        formatted_text = self.wrap_text(text, font, max_width)
-        
-        while font_size > min_font_size:
-            bbox = draw.multiline_textbbox((0, 0), formatted_text, font=font, spacing=8)
-            text_w = bbox[2] - bbox[0]
-            text_h = bbox[3] - bbox[1]
-            
-            # Check if it fits the calculated max bounds AND perfectly fits in the cells (double check)
-            if text_w <= max_width and text_h <= max_height and self._fits_in_cells(text_w, text_h, cx, cy, cells, cell_size, offset, padding=10):
-                break
-                
-            font_size -= 2
+        step_y = max(8, cell_size // 8)
+
+        chosen = None
+        chosen_font = None
+        chosen_stroke = 0
+        chosen_tracking = 0
+        chosen_cache = None
+
+        for font_size in range(max_font_size, min_font_size - 1, -3):
             font = self.load_font(font_name, font_size)
-            formatted_text = self.wrap_text(text, font, max_width)
-            
-        # Re-measure in case loop exited at min_font_size
+            stroke_w = max(1, font_size // 25) if stroke_color else 0
+            # Padding keeps text away from mask edges (the mask corners are
+            # rounded by the blur in build_smooth_mask).
+            pad = 15 + stroke_w
+            line_gap = max(6, font_size // 8)
+            tracking = font_size * letter_spacing / 100
+            char_cache = self._char_widths(draw, text + " ", font) if tracking else None
+
+            best = None
+            start_y = int(mask_top + pad)
+            while start_y < mask_bottom - pad:
+                placements = self._layout_lines(
+                    draw, words, font, start_y, rows, cell_size, offset,
+                    target_cx, pad, line_gap, tracking=tracking, char_cache=char_cache,
+                )
+                if placements:
+                    block_top = placements[0][2]
+                    block_bottom = placements[-1][2] + placements[-1][4]
+                    block_left = min(p[1] for p in placements)
+                    block_right = max(p[1] + p[3] for p in placements)
+                    block_cx = (block_left + block_right) / 2
+                    block_cy = (block_top + block_bottom) / 2
+                    penalty = abs(block_cy - target_cy) + 0.5 * abs(block_cx - target_cx)
+                    if best is None or penalty < best[0]:
+                        best = (penalty, placements)
+                start_y += step_y
+
+            if best:
+                chosen = best[1]
+                chosen_font = font
+                chosen_stroke = stroke_w
+                chosen_tracking = tracking
+                chosen_cache = char_cache
+                break
+
+        if chosen is None:
+            # Last resort: minimum font size, allow single overlong words.
+            font = self.load_font(font_name, min_font_size)
+            stroke_w = max(1, min_font_size // 25) if stroke_color else 0
+            pad = 15 + stroke_w
+            line_gap = max(6, min_font_size // 8)
+            tracking = min_font_size * letter_spacing / 100
+            char_cache = self._char_widths(draw, text + " ", font) if tracking else None
+            start_y = int(mask_top + pad)
+            while start_y < mask_bottom - pad and chosen is None:
+                chosen = self._layout_lines(
+                    draw, words, font, start_y, rows, cell_size, offset,
+                    target_cx, pad, line_gap, force=True, tracking=tracking, char_cache=char_cache,
+                )
+                start_y += step_y
+            chosen_font = font
+            chosen_stroke = stroke_w
+            chosen_tracking = tracking
+            chosen_cache = char_cache
+
+        if chosen is None:
+            # Absolute fallback (degenerate masks): old-style centered block
+            # clamped to the image, so the pipeline never crashes.
+            return self._draw_fallback_block(result, draw, words, bounds, cx, cy, x_offset, y_offset, font_name, min_font_size, text_color, stroke_color)
+
+        for line, x, y, _w, _h in chosen:
+            kwargs = {"fill": text_color}
+            if stroke_color:
+                kwargs["stroke_width"] = chosen_stroke
+                kwargs["stroke_fill"] = stroke_color
+            self._draw_line(draw, x, y, line, chosen_font, chosen_tracking, chosen_cache, **kwargs)
+
+        return result
+
+    def _draw_fallback_block(self, result, draw, words, bounds, cx, cy, x_offset, y_offset, font_name, font_size, text_color, stroke_color):
+        """Centered multiline fallback used only when the mask has no usable
+        band at all (e.g. degenerate test masks smaller than one line)."""
+        font = self.load_font(font_name, font_size)
+        max_width = max(50, (bounds[2] - bounds[0]) * 0.9) if bounds else 300
+        formatted_text = self.wrap_text(" ".join(words), font, max_width)
+
         bbox = draw.multiline_textbbox((0, 0), formatted_text, font=font, spacing=8)
         text_w = bbox[2] - bbox[0]
         text_h = bbox[3] - bbox[1]
 
-        img_w, img_h = image.size
-        x = cx - text_w / 2 + x_offset
-        y = cy - text_h / 2 + y_offset
-        
-        # Prevent text from going entirely off-screen
-        x = max(0, min(x, img_w - text_w))
-        y = max(0, min(y, img_h - text_h))
+        img_w, img_h = result.size
+        x = max(0, min(cx - text_w / 2 + x_offset, img_w - text_w))
+        y = max(0, min(cy - text_h / 2 + y_offset, img_h - text_h))
 
         kwargs = {
             "xy": (x, y),
@@ -178,13 +376,10 @@ class TextRenderer:
             "fill": text_color,
             "font": font,
             "spacing": 8,
-            "align": "center"
+            "align": "center",
         }
-        
         if stroke_color:
             kwargs["stroke_width"] = max(1, font_size // 25)
             kwargs["stroke_fill"] = stroke_color
-
         draw.multiline_text(**kwargs)
-
         return result

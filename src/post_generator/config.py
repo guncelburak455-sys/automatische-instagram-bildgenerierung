@@ -20,3 +20,8 @@ class Config:
     font: Optional[str] = None
     text_color: str = "white"
     stroke_color: Optional[str] = None
+
+    # Letter spacing (tracking) in percent of the font size. Negative values
+    # tighten the text (THWS posts use tight tracking), positive values widen it.
+    letter_spacing: float = -8.0
+    
