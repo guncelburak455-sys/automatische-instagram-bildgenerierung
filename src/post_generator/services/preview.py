@@ -2,19 +2,23 @@ from pathlib import Path
 
 from PIL import Image, ImageColor, ImageDraw, ImageFont
 
-HISTORY_DIR_NAME = "history"
-HISTORY_MAX_KEEP = 5
+# 2 main components:
+# (1) displaying a preview of the composed image with metadata
+# (2) providing all the terminal-based menus/prompts that let the user regenrate, save or quit
+
+HISTORY_DIR_NAME = "history"                    # subfolder name
+HISTORY_MAX_KEEP = 5                            # max number of previews you can have with regenerate
 
 # Maximum height the preview should occupy (image + info strip combined),
 # so the 4:5 image fits comfortably on a typical screen.
 _MAX_PREVIEW_HEIGHT = 800
 _INFO_STRIP_HEIGHT = 110
 _INFO_PADDING = 16
-_INFO_BG = (30, 30, 30)
-_INFO_FG = (240, 240, 240)
-_INFO_FG_DIM = (180, 180, 180)
+_INFO_BG = (30, 30, 30)             # dark gray color
+_INFO_FG = (240, 240, 240)          # light gray color
+_INFO_FG_DIM = (180, 180, 180)      # natural gray color
 
-
+# helper method for _build_preview() ---> tries different system fonts, falls back to PIL default in case of error
 def _load_font(size: int) -> ImageFont.ImageFont:
     for name in ("arialbd.ttf", "arial.ttf", "DejaVuSans.ttf"):
         try:
@@ -23,7 +27,8 @@ def _load_font(size: int) -> ImageFont.ImageFont:
             continue
     return ImageFont.load_default()
 
-# takes the image and a max height and returns an Image whose height is at most max_height
+
+# helper method for _build_preview() --> scales the iamge down to fit a max height while preserving aspect ratio
 def _fit_to_screen(image: Image.Image, max_height: int) -> Image.Image:
     if image.height <= max_height:
         return image.copy()                                                                 # no scaling needed if image shorter than max_height
@@ -31,7 +36,8 @@ def _fit_to_screen(image: Image.Image, max_height: int) -> Image.Image:
     new_size = (max(1, int(image.width * scale)), max_height)
     return image.resize(new_size, Image.LANCZOS)
 
-# takes the image with all parameters and outputs a new image where the original isn't modified
+
+# helper method for show_preview() ---> composites the scaled image onto a canvas with a dark footer showing the values of the parameters
 def _build_preview(image: Image.Image, position: str, text: str, x: int, y: int, variation: int) -> Image.Image:
 
     image_max_h = _MAX_PREVIEW_HEIGHT - _INFO_STRIP_HEIGHT
