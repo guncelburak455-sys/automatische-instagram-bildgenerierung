@@ -49,7 +49,8 @@ def _build_image(config: Config) -> tuple[Image.Image, str]:
         y_offset=config.y,
         font_name=config.font,
         text_color=config.text_color,
-        stroke_color=config.stroke_color
+        stroke_color=config.stroke_color,
+        letter_spacing=config.letter_spacing
     )
 
     return result, position
