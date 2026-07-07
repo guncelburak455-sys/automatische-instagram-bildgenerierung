@@ -1,4 +1,5 @@
 import argparse
+import re
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -7,6 +8,13 @@ from .config import Config
 
 
 POSITIONS = ["bottom-left", "bottom-right", "top-left", "top-right", "left", "right", "random"]
+
+# hex color format for the overlay mask, e.g. #FF8400 or #0077B6
+HEX_COLOR_RE = re.compile(r"#[0-9a-fA-F]{6}")
+
+
+def is_hex_color(value: str) -> bool:
+    return bool(HEX_COLOR_RE.fullmatch(value))
 
 
 def generate_output_name() -> str:
@@ -76,6 +84,12 @@ def interactive_mode() -> Config:
     stroke_color = ask_with_default("Stroke color", "")
     stroke_color = stroke_color if stroke_color else None
 
+    mask_color = ask_with_default("Mask color (hex, empty keeps THWS orange)", "")
+    while mask_color and not is_hex_color(mask_color):
+        print("Mask color must be a hex code like #FF8400 or #0077B6.")
+        mask_color = ask_with_default("Mask color (hex, empty keeps THWS orange)", "")
+    mask_color = mask_color if mask_color else None
+
     return Config(
         photo=photo,
         position=position,
@@ -88,6 +102,7 @@ def interactive_mode() -> Config:
         font=font,
         text_color=text_color,
         stroke_color=stroke_color,
+        mask_color=mask_color,
     )
 
 
@@ -105,7 +120,8 @@ def parse_args() -> Config:
             "  python3 main.py --photo campus.jpg --position random --text \"Campus Life\" --preview\n"
             "  python3 main.py --photo campus.jpg --position bottom-left --text \"Waseda University\" --x 20 --y 40\n"
             "  python3 main.py --photo campus.jpg --position top-right --text \"THWS\" --output_path outputs\n"
-            "  python3 main.py --photo campus.jpg --position top-right --text \"THWS\" --font assets/fonts/DejaVuSans-Bold.ttf --text_color white --stroke_color black\n\n"
+            "  python3 main.py --photo campus.jpg --position top-right --text \"THWS\" --font assets/fonts/DejaVuSans-Bold.ttf --text_color white --stroke_color black\n"
+            "  python3 main.py --photo campus.jpg --position top-right --text \"THWS\" --mask_color \"#0077B6\"\n\n"
             "Interactive mode:\n"
             "  python3 main.py\n\n"
             "Available positions:\n"
@@ -142,6 +158,12 @@ def parse_args() -> Config:
     parser.add_argument("--font", required=False, default=None, help="Path to a custom TrueType font file (.ttf)")
     parser.add_argument("--text_color", required=False, default="white", help="Color of the text, e.g. 'red' or '#FFFFFF'")
     parser.add_argument("--stroke_color", required=False, default=None, help="Optional color for the text outline, e.g. 'black'")
+    parser.add_argument(
+        "--mask_color",
+        required=False,
+        default=None,
+        help="Hex color for the overlay mask, e.g. '#0077B6'. Defaults to THWS orange (#FF8400)."
+    )
 
     args = parser.parse_args()
 
@@ -150,6 +172,9 @@ def parse_args() -> Config:
 
     if args.font and not Path(args.font).is_file():
         parser.error(f"Font file not found: {args.font}")
+
+    if args.mask_color and not is_hex_color(args.mask_color):
+        parser.error(f"Invalid mask color: {args.mask_color}. Use a hex code like #FF8400 or #0077B6.")
 
     output_name = args.output_name if args.output_name else generate_output_name()
 
@@ -165,4 +190,5 @@ def parse_args() -> Config:
         font=args.font,
         text_color=args.text_color,
         stroke_color=args.stroke_color,
+        mask_color=args.mask_color,
     )

@@ -24,4 +24,8 @@ class Config:
     # Letter spacing (tracking) in percent of the font size. Negative values
     # tighten the text (THWS posts use tight tracking), positive values widen it.
     letter_spacing: float = -8.0
+
+    # Overlay mask color as a hex string (e.g. "#0077B6"). None keeps the
+    # default THWS orange (#FF8400) defined in composition.ORANGE.
+    mask_color: Optional[str] = None
     

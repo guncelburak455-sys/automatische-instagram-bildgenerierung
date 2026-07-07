@@ -1,13 +1,14 @@
 from pathlib import Path
 from PIL import Image
 
-ORANGE = (255, 132, 0, 255)         # THWS Brand Color
+ORANGE = (255, 132, 0, 255)         # THWS Brand Color (#FF8400)
 
-# takes a background photo and a mask, then overlays the ORANGE variable wherever the mask dictates
-def compose(bg: Image.Image, mask: Image.Image) -> Image.Image:
-    orange = Image.new("RGBA", bg.size, ORANGE)         # new image filled with the THWS orange
-    return Image.composite(orange, bg, mask)        # blends the two together with the mask,
-                                                    # where the mask is white -> show the first image (THWS orange)
+# takes a background photo and a mask, then overlays the given color wherever the mask dictates
+def compose(bg: Image.Image, mask: Image.Image, color: str | tuple | None = None) -> Image.Image:
+    fill = color if color is not None else ORANGE   # fall back to the THWS orange when no color is passed
+    layer = Image.new("RGBA", bg.size, fill)        # new image filled with the overlay color
+    return Image.composite(layer, bg, mask)         # blends the two together with the mask,
+                                                    # where the mask is white -> show the first image (overlay color)
                                                     # where the mask is black -> show the second image (background)
                                                     # where the mask is gray -> blend the two proportionally
 

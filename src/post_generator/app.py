@@ -5,7 +5,7 @@ from PIL import Image
 from .config import Config
 from .services import composition, mask, transform
 from .services.overlay_service import CELL_SIZE, build_overlay_layout
-from .services.preview import show_preview, read_action, read_regenerate_choice, prompt_position, prompt_text, prompt_colors
+from .services.preview import show_preview, read_action, read_regenerate_choice, prompt_position, prompt_text, prompt_colors, prompt_mask_color
 from .services.textrenderer import TextRenderer
 from .services.post_generator import crop_to_4_5
 
@@ -16,7 +16,7 @@ def _resolve_output_path(config: Config) -> str:
     return str(Path(output_dir) / output_name)
 
 
-# pipeline: crop photo -> resolve position -> build overlay layout -> generate mask -> compose with orange -> render text
+# pipeline: crop photo -> resolve position -> build overlay layout -> generate mask -> compose with mask color -> render text
 def _build_image(config: Config) -> tuple[Image.Image, str]:
     """Run the full generation pipeline once and return (image, resolved_position)."""
     bg = Image.open(Path(config.photo)).convert("RGBA")
@@ -27,7 +27,7 @@ def _build_image(config: Config) -> tuple[Image.Image, str]:
     overlay = build_overlay_layout(position, rng)
 
     generated_mask = mask.build_smooth_mask(bg.size, overlay.cells, CELL_SIZE, overlay.offset)
-    result = composition.compose(bg, generated_mask)
+    result = composition.compose(bg, generated_mask, config.mask_color)        # falls back to THWS orange when mask_color is None
 
     renderer = TextRenderer()
     # --- Epic B - Issue 2 & 3: Visual Center & Text Rendering Engine ---
@@ -56,7 +56,7 @@ def _build_image(config: Config) -> tuple[Image.Image, str]:
     return result, position
 
 # shows up each time we run a command with the --preview cli parameter
-_HINT = "[R] regenerate   [S] save & quit   [C] color   [Z] zurueck (pick previous)   [Q] quit without saving"
+_HINT = "[R] regenerate   [S] save & quit   [C] color   [M] mask color   [Z] zurueck (pick previous)   [Q] quit without saving"
 
 # takes the parsed Config CLI and the output file path ; returns nothing, driven by R/S/Q
 def _interactive_loop(config: Config, out_path: str) -> None:
@@ -78,6 +78,15 @@ def _interactive_loop(config: Config, out_path: str) -> None:
                 config.text = prompt_text(config.text)                          # asks for a new text parameter
             variation += 1                                                      # add to the counter after each keystroke
             print(f"Regenerating (variation #{variation}, position={config.position})...")
+            image, position = _build_image(config)
+            save_to_history(image, out_path)
+            show_preview(image, position, config.text, config.x, config.y, variation)
+            print(_HINT)
+        elif action == "m":                                                     # change the overlay mask color, then regenerate
+            config.mask_color = prompt_mask_color(config.mask_color)           # persists across subsequent R-presses via the shared config
+            variation += 1
+            mask_shown = config.mask_color if config.mask_color else "#FF8400 (default)"
+            print(f"Regenerating (variation #{variation}, mask={mask_shown})...")
             image, position = _build_image(config)
             save_to_history(image, out_path)
             show_preview(image, position, config.text, config.x, config.y, variation)
