@@ -1,3 +1,4 @@
+import re
 from pathlib import Path
 
 from PIL import Image, ImageColor, ImageDraw, ImageFont
@@ -105,8 +106,8 @@ def _read_key(allowed: tuple[str, ...]) -> str:
 
 
 def read_action() -> str:
-    """Top-level shortcut: R/S/C/Q/Z."""
-    return _read_key(("r", "s", "c", "q", "z"))
+    """Top-level shortcut: R/S/C/M/Q/Z."""
+    return _read_key(("r", "s", "c", "m", "q", "z"))
 
 # parses the user's given output path into the three pieces the history operation needs
 def _history_paths(out_path: str, max_keep: int = HISTORY_MAX_KEEP) -> tuple[Path, str, str]:
@@ -214,6 +215,28 @@ def prompt_colors(text_color, stroke_color):
     if key in ("s", "b"):
         stroke_color = _read_color("stroke", stroke_color)
     return text_color, stroke_color
+
+
+# hex color format for the overlay mask, e.g. #FF8400 or #0077B6
+_HEX_COLOR_RE = re.compile(r"#[0-9a-fA-F]{6}")
+
+
+def prompt_mask_color(current):
+    """Prompt after M for a new overlay mask color in hex format.
+
+    Empty input keeps `current` (None means the default THWS orange #FF8400).
+    Invalid input is rejected and re-prompted, so a typo can't crash the loop.
+    Returns the chosen hex string (or `current`).
+    """
+    shown = current if current else "#FF8400 (default)"
+    print(f"Current mask color: {shown}")
+    while True:
+        raw = input(f"New mask color (hex like #FF8400 or #0077B6, Enter to keep '{shown}'): ").strip()
+        if not raw:
+            return current
+        if _HEX_COLOR_RE.fullmatch(raw):
+            return raw
+        print(f"  '{raw}' is not a valid hex color. Use the format #RRGGBB, e.g. #0077B6.")
 
 
 def prompt_position(current: str) -> str:
