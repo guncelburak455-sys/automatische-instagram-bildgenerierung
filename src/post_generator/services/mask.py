@@ -1,5 +1,8 @@
 from PIL import Image, ImageDraw, ImageFilter
 
+# builds a smooth anti-aliased mask
+# white regions in the mask = orange overlay
+# black regions = photo shows through
 
 def build_smooth_mask(size, cells, cell, offset):
     # draw at 4x resolution then shrink, so edges come out smooth
