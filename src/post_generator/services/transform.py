@@ -3,8 +3,7 @@ import random
 INSTAGRAM_WIDTH = 1080
 INSTAGRAM_HEIGHT = 1350
 
-
-
+# helper function for transform_for_position()
 # flips cell coordinates within the grid - used to place the same shape in any corner
 def mirror_cells(cells, width, height, horizontal=False, vertical=False):
     out = []
@@ -22,10 +21,11 @@ def choose_position(position: str, rng: random.Random) -> str:
         return rng.choice(VALID_POSITIONS)
 
     return position
-# maps each corner to the right mirroring operation
+
+# given a set of cells, applies the correct mirroring to place them in the requested position
 def transform_for_position(cells, width, height, position):
     if position == "top-left":
-        return cells
+        return cells                            # starts with top-left already, so no need to do anything
     if position == "top-right":
         return mirror_cells(cells, width, height, horizontal=True)
     if position == "bottom-left":
@@ -36,7 +36,7 @@ def transform_for_position(cells, width, height, position):
         return mirror_cells(cells, width, height, horizontal=True)
     return mirror_cells(cells, width, height, horizontal=True, vertical=True)
 
-# returns the pixel (x, y) where the top-left of the shape grid should be places so it sits flush in the chosen corner
+# calculates the pixel offset (top-left corner) for where to start drawing the shape grid on the background photo
 def anchor_offset(template_w, template_h, cell, position):
     shape_w = template_w * cell
     shape_h = template_h * cell
@@ -44,32 +44,26 @@ def anchor_offset(template_w, template_h, cell, position):
     if position == "top-left":
         return 0, 0
     if position == "top-right":
-        return INSTAGRAM_WIDTH - shape_w, 0
+        return INSTAGRAM_WIDTH - shape_w, 0                         # 1080 - shape_w, 0
     if position == "bottom-left":
-        return 0, INSTAGRAM_HEIGHT - shape_h
+        return 0, INSTAGRAM_HEIGHT - shape_h                        # 0, 1350 - shape_h
     if position == "left":
         return 0, 0
     if position == "right":
         return INSTAGRAM_WIDTH - shape_w, 0
     return INSTAGRAM_WIDTH - shape_w, INSTAGRAM_HEIGHT - shape_h
 
-# function that has been replaced by get_overlay_bounds
-def get_text_anchor(cells, cell, offset):
-    ox, oy = offset
-    min_y = min(y for x, y in cells)
-    top_row_xs = [x for x, y in cells if y == min_y]
-    min_x = min(top_row_xs)
-    return ox + min_x * cell, oy + min_y * cell
-
-# calculates the bounding rectangle around all filled cells ; finds the min/max cell coordinates in both axes, then converts to pixel coordinates
+# calculates the bounding rectangle where the text is outputted ; finds the min/max cell coordinates in both axes, then converts to pixel coordinates
 def get_overlay_bounds(cells, cell, offset):
     ox, oy = offset
 
+    # finding min/max cell coordinates in both x and y
     min_cell_x = min(x for x, y in cells)
     max_cell_x = max(x for x, y in cells)
     min_cell_y = min(y for x, y in cells)
     max_cell_y = max(y for x, y in cells)
 
+    # convert the min/max to pixel coordiantes
     left = ox + min_cell_x * cell
     top = oy + min_cell_y * cell
     right = ox + (max_cell_x + 1) * cell
