@@ -54,7 +54,7 @@ The tool can be used in two ways:
 
 ## 🛠️ Tech Stack
 
-- **Python 3**
+- **Python**
 - **Pillow**
 - **pytest**
 - **Docker**
